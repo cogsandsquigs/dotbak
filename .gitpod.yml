@@ -1,0 +1,7 @@
+tasks:
+  - before: >
+      [[ ! -z $GNUPG_KEY  ]] &&
+      gpg --verbose --batch --import <(echo $GNUPG_KEY|base64 -d) &&
+      echo 'pinentry-mode loopback' >> ~/.gnupg/gpg.conf &&
+      export GNUPG_KEY_ID=$(gpg --list-secret-keys --keyid-format=long | sed -n '3p' | cut -c15-30) && 
+      git config --global user.signingkey $GNUPG_KEY_ID

@@ -6,4 +6,6 @@
   version     = "0.0.0"
 
 [dependencies]
-  clap = "4.0.32"
+  clap  = "4.0.32"
+  serde = { version = "1.0.152", features = ["derive"] }
+  toml  = "0.5.10"

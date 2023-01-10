@@ -71,14 +71,8 @@ impl Logger {
             let result = self.stderr.write_line(message.as_str());
 
             // This is here because if we encounter an error, we want to log it immediately.
-            if result.is_err() {
-                eprintln!(
-                    "[FATAL] {}",
-                    result
-                        .as_ref()
-                        .err()
-                        .expect("This should be safe because we know the result is an error.")
-                );
+            if let Err(error) = result.as_ref() {
+                eprintln!("[FATAL] {}", error);
             }
 
             return result;

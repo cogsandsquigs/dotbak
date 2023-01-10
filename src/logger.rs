@@ -71,7 +71,7 @@ impl Logger {
             let result = self.stderr.write_line(message.as_str());
 
             // This is here because if we encounter an error, we want to log it immediately.
-            if result.is_err() && level >= LogLevel::Fatal {
+            if result.is_err() && level {
                 eprintln!(
                     "[FATAL] {}",
                     result
@@ -98,5 +98,4 @@ pub enum LogLevel {
     Info,
     Warn,
     Error,
-    Fatal,
 }

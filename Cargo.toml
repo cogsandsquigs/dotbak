@@ -6,8 +6,8 @@
   version     = "0.0.0"
 
 [dependencies]
-  clap      = "4.0.32"
-  console   = "0.15.4"
+  clap      = { version = "4.0.32", features = ["derive"] }
   dialoguer = "0.10.2"
-  serde     = { version = "1.0.152", features = ["derive"] }
-  toml      = "0.5.10"
+  #  console   = "0.15.4"
+  #  serde     = { version = "1.0.152", features = ["derive"] }
+  #  toml      = "0.5.10"

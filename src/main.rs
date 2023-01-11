@@ -1,7 +1,6 @@
-use std::{io, path::PathBuf};
-
 use clap::{Parser, Subcommand};
 use dialoguer::{theme::ColorfulTheme, Input};
+use std::{io, path::PathBuf};
 
 /// Manage and backup dotfiles with ease!
 #[derive(Debug, Parser)]

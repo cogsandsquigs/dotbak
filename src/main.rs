@@ -54,7 +54,10 @@ fn main() -> io::Result<()> {
                 // location.display(),
                 repository
             );
-            println!("To start syncing dotfiles, run 'dotback add <dotfile>', or run 'dotback -h' for more information.");
+            println!(
+                "Note that the default synced dotfiles are '.dotback/*' and '.config/*', not including subdirectories"
+            );
+            println!("To start syncing more dotfiles, run 'dotback add <dotfile>', or run 'dotback -h' for more information.");
         }
     }
 

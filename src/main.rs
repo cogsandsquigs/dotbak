@@ -1,8 +1,9 @@
-pub mod config;
+mod dotback;
 
 use clap::{Parser, Subcommand};
 use dialoguer::{theme::ColorfulTheme, Input};
-use std::{io, path::PathBuf};
+use dotback::config::Config;
+use std::io;
 
 /// Manage and backup dotfiles with ease!
 #[derive(Debug, Parser)]
@@ -18,10 +19,9 @@ struct Args {
 enum Action {
     /// Initialize dotback for your current home directory.
     Init {
-        /// Where the '.dotback' directory lives.
-        #[arg(short, long, default_value = "~/.dotback")]
-        location: PathBuf,
-
+        // /// Where the '.dotback' directory lives.
+        // #[arg(short, long, default_value = "~/.dotback")]
+        // location: PathBuf,
         /// The remote Git repository where the dotfiles are stored.
         /// TODO: Maybe git url type?
         #[arg(short, long)]
@@ -34,7 +34,7 @@ fn main() -> io::Result<()> {
 
     match args.action {
         Action::Init {
-            mut location,
+            // location,
             repository,
         } => {
             // Get the repository from the user if it is not provided already.
@@ -47,11 +47,11 @@ fn main() -> io::Result<()> {
             };
 
             // TODO: business logic
-            // todo!();
+            todo!();
 
             println!(
-                "Done! dotback is now initialized at '{}', and syncs dotfiles to '{}'.",
-                location.display(),
+                "Done! dotback is now initialized at '~/.dotback', and syncs dotfiles to '{}'.",
+                // location.display(),
                 repository
             );
             println!("To start syncing dotfiles, run 'dotback add <dotfile>', or run 'dotback -h' for more information.");

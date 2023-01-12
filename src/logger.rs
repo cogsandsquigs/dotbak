@@ -1,6 +1,5 @@
-use std::{fmt::Display, io};
-
 use console::{style, Term};
+use std::{fmt::Display, io};
 
 /// `Logger` logs information out to the console, in different formats,
 /// for different types of info (DEBUG vs INFO vs WARN vs ERROR etc.).

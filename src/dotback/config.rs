@@ -1,8 +1,3 @@
-use core::str;
-
-use glob::Pattern;
-use home::home_dir;
-
 /// The main configuration for dotback.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Config {
@@ -11,7 +6,10 @@ pub struct Config {
 
     /// The dotfiles that we want to sync. These are absolute paths to the
     /// dotfiles.
-    pub dotfiles: Vec<Pattern>,
+    pub dotfiles: Vec<String>,
+
+    /// Any dotfiles that we want to exclude.
+    pub exclude: Vec<String>,
 }
 
 /// Public API for `Config`.
@@ -22,6 +20,7 @@ impl Config {
         let mut config = Self {
             repository: repository.to_string(),
             dotfiles: vec![],
+            exclude: vec![],
         };
 
         config.add_dotfile(".dotback/*");
@@ -30,9 +29,12 @@ impl Config {
     }
 
     /// Adds a new dotfile inclusion pattern to the configuration.
-    /// TODO: Get rid of `unwrap`s.
-    pub fn add_dotfile(&mut self, pattern: &str) {
-        self.dotfiles
-            .push(Pattern::new(home_dir().unwrap().join(pattern).to_str().unwrap()).unwrap());
+    pub fn add_dotfile<S: ToString>(&mut self, pattern: S) {
+        self.dotfiles.push(pattern.to_string());
+    }
+
+    /// Removes a dotfile inclusion pattern to the configuration.
+    pub fn remove_dotfile<S: ToString>(&mut self, pattern: S) {
+        todo!()
     }
 }

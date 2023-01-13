@@ -2,7 +2,6 @@ mod dotback;
 
 use clap::{Parser, Subcommand};
 use dialoguer::{theme::ColorfulTheme, Input};
-use dotback::config::Config;
 use std::io;
 
 /// Manage and backup dotfiles with ease!
@@ -53,9 +52,6 @@ fn main() -> io::Result<()> {
                 "Done! dotback is now initialized at '~/.dotback', and syncs dotfiles to '{}'.",
                 // location.display(),
                 repository
-            );
-            println!(
-                "Note that the default synced dotfiles are '.dotback/*' and '.config/*', not including subdirectories"
             );
             println!("To start syncing more dotfiles, run 'dotback add <dotfile>', or run 'dotback -h' for more information.");
         }

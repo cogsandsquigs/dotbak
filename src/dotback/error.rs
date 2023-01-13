@@ -12,11 +12,11 @@ pub enum Error {
     /// An error occurred while reading/writing to the configuration file. This does not apply to
     /// parsing errors, instead, it applies to errors that occur while reading/writing the file
     /// (like not being able to open the file, or not having permissions to read/write to the file).
-    #[snafu(display("Error loading configuration: {}", source))]
+    #[snafu(display("Error loading the configuration: {}", source))]
     ConfigLoading { source: io::Error },
 
     /// An error occured while parsing the configuration file.
-    #[snafu(display("Error parsing configuration: {}", source))]
+    #[snafu(display("Error parsing the configuration: {}", source))]
     ConfigParsing { source: toml::de::Error },
 }
 

@@ -11,9 +11,16 @@ pub enum Error {
 
     /// The `.dotback` directory could not be found.
     #[snafu(display(
-        "The '.dotback' directory could not be found! Please run 'dotback init' to create it."
+        "The '.dotback' directory could not be found!\nPlease run 'dotback init' to create it."
     ))]
     DotbackDirectoryNotFound,
+
+    /// The `.dotback` directory already exists.
+    #[snafu(display(
+        "The '.dotback' directory already exists!
+        If you want to delete '.dotback' and its contents, run 'dotback uninstall'."
+    ))]
+    DotbackDirectoryAlreadyExists,
 
     /// An error occurred while reading/writing to the configuration file. This does not apply to
     /// parsing errors, instead, it applies to errors that occur while reading/writing the file
@@ -28,6 +35,10 @@ pub enum Error {
     /// An error occured while serializing the configuration file.
     #[snafu(display("Error serializing the configuration: {}", source))]
     ConfigSerializing { source: toml::ser::Error },
+
+    /// A git-related error occurred.
+    #[snafu(display("Error with git: {}", source))]
+    Git { source: git2::Error },
 }
 
 impl From<io::Error> for Error {
@@ -48,5 +59,11 @@ impl From<toml::de::Error> for Error {
 impl From<toml::ser::Error> for Error {
     fn from(source: toml::ser::Error) -> Self {
         Error::ConfigSerializing { source }
+    }
+}
+
+impl From<git2::Error> for Error {
+    fn from(source: git2::Error) -> Self {
+        Error::Git { source }
     }
 }

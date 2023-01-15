@@ -1,8 +1,11 @@
 mod dotback;
 
+
+
+use crate::dotback::Dotback;
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use dialoguer::{theme::ColorfulTheme, Input};
-use std::io;
 
 /// Manage and backup dotfiles with ease!
 #[derive(Debug, Parser)]
@@ -26,9 +29,12 @@ enum Action {
         #[arg(short, long)]
         repository: Option<String>,
     },
+
+    /// Uninstall dotback from your current home directory.
+    Uninstall,
 }
 
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     match args.action {
@@ -45,15 +51,18 @@ fn main() -> io::Result<()> {
                     .interact_text()?,
             };
 
-            // TODO: business logic
-            todo!();
+            Dotback::init(&repository)?;
 
             println!(
-                "Done! dotback is now initialized at '~/.dotback', and syncs dotfiles to '{}'.",
-                // location.display(),
-                repository
+                "Done! dotback is now initialized at '~/.dotback', and syncs dotfiles to '{repository}'."
             );
             println!("To start syncing more dotfiles, run 'dotback add <dotfile>', or run 'dotback -h' for more information.");
+        }
+        Action::Uninstall => {
+            let dotback = Dotback::load()?;
+            dotback.uninstall()?;
+
+            println!("Done! dotback has been uninstalled from your home directory.");
         }
     }
 

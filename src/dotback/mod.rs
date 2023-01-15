@@ -3,6 +3,7 @@ pub mod error;
 
 use config::Config;
 use error::Error;
+use git2::Repository;
 use home::home_dir;
 use std::{
     fs::{self, File},
@@ -13,14 +14,17 @@ use std::{
 /// `Dotback` is sort of the "backend" for dotback. It manages dotfiles, configuration, and the
 /// syncing process.
 pub struct Dotback {
+    /// The configuration for dotback.
+    config: Config,
+
     /// The user's home directory.
     home_path: PathBuf,
 
     /// The path to the `.dotback` directory.
     dotback_path: PathBuf,
 
-    /// The configuration for dotback.
-    config: Config,
+    /// The git repository holding the dotfiles.
+    repository: Repository,
 }
 
 /// Public API for `Dotback`.
@@ -29,7 +33,17 @@ impl Dotback {
     /// exist, it returns an error.
     /// Note that the configuration is loaded from the default location, `~/.dotback/config.toml`.
     pub fn load() -> Result<Self, Error> {
-        let mut dotback = Dotback::new();
+        let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
+        let dotback_path = home_path.join(".dotback");
+        let repository_path = dotback_path.join("repo");
+        let repository = Repository::open(repository_path)?;
+
+        let mut dotback = Dotback {
+            config: Config::default(),
+            home_path,
+            dotback_path,
+            repository,
+        };
 
         // If the `.dotback` directory does not exist, return an error.
         if !dotback.dotback_path.exists() {
@@ -41,18 +55,54 @@ impl Dotback {
         Ok(dotback)
     }
 
-    /// Initializes a `Dotback` instance with the default configuration.
+    /// Initializes a `Dotback` instance with the default configuration. If the configuration already
+    /// exists, it uninstalls itself and returns an error.
     /// Note that the configuration is stored to the default location, `~/.dotback/config.toml`.
-    pub fn init() -> Result<Dotback, Error> {
-        let dotback = Dotback::new();
+    pub fn init(repository: &str) -> Result<Dotback, Error> {
+        let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
+        let dotback_path = home_path.join(".dotback");
+        let repository_path = dotback_path.join("repo");
 
-        fs::create_dir_all(&dotback.dotback_path)?;
+        if dotback_path.exists() {
+            return Err(Error::DotbackDirectoryAlreadyExists);
+        }
 
-        dotback.write_config()?;
+        fs::create_dir_all(&dotback_path)?;
 
-        dotback.init_repository()?;
+        let repository = match Repository::clone(repository, &repository_path) {
+            Ok(repo) => repo,
+
+            // If the repository fails to initialize, remove the `.dotback` directory and return the
+            // error.
+            Err(e) => {
+                fs::remove_dir_all(&dotback_path)?;
+                return Err(e.into());
+            }
+        };
+
+        let mut dotback = Dotback {
+            config: Config::default(),
+            home_path,
+            dotback_path,
+            repository,
+        };
+
+        // Set the repository path in the configuration.
+        dotback.config.repository = repository_path.to_str().unwrap().to_string();
+
+        if let Err(e) = dotback.write_config() {
+            dotback.uninstall()?;
+            return Err(e);
+        }
 
         Ok(dotback)
+    }
+
+    /// Uninstalls dotback by removing the `.dotback` directory.
+    pub fn uninstall(&self) -> Result<(), Error> {
+        fs::remove_dir_all(&self.dotback_path)?;
+
+        Ok(())
     }
 
     /// Adds a new dotfile inclusion pattern to the configuration.
@@ -61,29 +111,25 @@ impl Dotback {
 
         self.write_config()?;
 
+        todo!();
+
         Ok(())
     }
 
     /// Removes a dotfile inclusion pattern to the configuration.
-    pub fn remove_dotfile<P: Into<PathBuf>>(&mut self, dotfile: P) {
-        self.config.remove_dotfile(dotfile)
+    pub fn remove_dotfile<P: Into<PathBuf>>(&mut self, dotfile: P) -> Result<(), Error> {
+        self.config.remove_dotfile(dotfile);
+
+        self.write_config()?;
+
+        todo!();
+
+        Ok(())
     }
 }
 
 /// Private API for `Dotback`.
 impl Dotback {
-    /// Creates a new `Dotback` instance.
-    fn new() -> Self {
-        let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
-        let dotback_path = home_path.join(".dotback");
-
-        Dotback {
-            home_path,
-            dotback_path,
-            config: Config::default(),
-        }
-    }
-
     /// Returns the path to the configuration file.
     fn config_path(&self) -> PathBuf {
         self.dotback_path.join("config.toml")
@@ -134,12 +180,5 @@ impl Dotback {
         self.config = config;
 
         Ok(())
-    }
-
-    /// Initializes the dotback repository.
-    fn init_repository(&self) -> Result<(), Error> {
-        fs::create_dir_all(self.repository_path())?;
-
-        todo!()
     }
 }

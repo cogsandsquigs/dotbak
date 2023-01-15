@@ -6,10 +6,9 @@
 	version     = "0.0.0"
 
 [dependencies]
-anyhow = "1.0.68"
+	anyhow    = "1.0.68"
 	clap      = { version = "4.0.32", features = ["derive"] }
 	dialoguer = "0.10.2"
-	git2      = "0.16.0"
 	home      = "0.5.4"
 	serde     = { version = "1.0.152", features = ["derive"] }
 	snafu     = "0.7.4"

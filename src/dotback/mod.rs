@@ -3,12 +3,12 @@ pub mod error;
 
 use config::Config;
 use error::Error;
-use git2::Repository;
 use home::home_dir;
 use std::{
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
+    process::Command,
 };
 
 /// `Dotback` is sort of the "backend" for dotback. It manages dotfiles, configuration, and the
@@ -22,9 +22,6 @@ pub struct Dotback {
 
     /// The path to the `.dotback` directory.
     dotback_path: PathBuf,
-
-    /// The git repository holding the dotfiles.
-    repository: Repository,
 }
 
 /// Public API for `Dotback`.
@@ -35,14 +32,11 @@ impl Dotback {
     pub fn load() -> Result<Self, Error> {
         let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
         let dotback_path = home_path.join(".dotback");
-        let repository_path = dotback_path.join("repo");
-        let repository = Repository::open(repository_path)?;
 
         let mut dotback = Dotback {
             config: Config::default(),
             home_path,
             dotback_path,
-            repository,
         };
 
         // If the `.dotback` directory does not exist, return an error.
@@ -61,36 +55,23 @@ impl Dotback {
     pub fn init(repository: &str) -> Result<Dotback, Error> {
         let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
         let dotback_path = home_path.join(".dotback");
-        let repository_path = dotback_path.join("repo");
-
-        if dotback_path.exists() {
-            return Err(Error::DotbackDirectoryAlreadyExists);
-        }
-
-        fs::create_dir_all(&dotback_path)?;
-
-        let repository = match Repository::clone(repository, &repository_path) {
-            Ok(repo) => repo,
-
-            // If the repository fails to initialize, remove the `.dotback` directory and return the
-            // error.
-            Err(e) => {
-                fs::remove_dir_all(&dotback_path)?;
-                return Err(e.into());
-            }
-        };
 
         let mut dotback = Dotback {
             config: Config::default(),
             home_path,
             dotback_path,
-            repository,
         };
 
-        // Set the repository path in the configuration.
-        dotback.config.repository = repository_path.to_str().unwrap().to_string();
+        // If the `.dotback` directory already exists, return an error.
+        if dotback.dotback_path.exists() {
+            return Err(Error::DotbackDirectoryAlreadyExists);
+        }
 
-        if let Err(e) = dotback.write_config() {
+        // Create the `.dotback` directory.
+        fs::create_dir_all(&dotback.dotback_path)?;
+
+        // Init the repository.
+        if let Err(e) = dotback.init_repo(repository) {
             dotback.uninstall()?;
             return Err(e);
         }
@@ -180,5 +161,35 @@ impl Dotback {
         self.config = config;
 
         Ok(())
+    }
+
+    /// Create the repository if it does not exist.
+    fn init_repo(&mut self, repository: &str) -> Result<(), Error> {
+        self.config.repository = repository.to_string();
+        self.write_config()?;
+
+        // Create the repository directory if it does not exist.
+        if !self.repository_path().exists() {
+            fs::create_dir_all(self.repository_path())?;
+        }
+
+        let output = Command::new("git")
+            .arg("clone")
+            .arg(repository)
+            .arg(self.repository_path())
+            .output()?;
+
+        if !output.status.success() {
+            Err(Error::Command {
+                stderr: String::from_utf8(output.stderr).unwrap(), // TODO: get rid of unwrap.
+            })
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Syncs the dotfiles with the repository.
+    fn sync(&self) -> Result<(), Error> {
+        todo!();
     }
 }

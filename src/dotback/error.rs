@@ -1,5 +1,5 @@
 use snafu::Snafu;
-use std::io;
+use std::{io, process::Output};
 use toml;
 
 /// All errors that can occur in the dotback library.
@@ -36,9 +36,9 @@ pub enum Error {
     #[snafu(display("Error serializing the configuration: {}", source))]
     ConfigSerializing { source: toml::ser::Error },
 
-    /// A git-related error occurred.
-    #[snafu(display("Error with git: {}", source))]
-    Git { source: git2::Error },
+    /// A command-related error.
+    #[snafu(display("Error running command:\n{}", stderr))]
+    Command { stderr: String },
 }
 
 impl From<io::Error> for Error {
@@ -59,11 +59,5 @@ impl From<toml::de::Error> for Error {
 impl From<toml::ser::Error> for Error {
     fn from(source: toml::ser::Error) -> Self {
         Error::ConfigSerializing { source }
-    }
-}
-
-impl From<git2::Error> for Error {
-    fn from(source: git2::Error) -> Self {
-        Error::Git { source }
     }
 }

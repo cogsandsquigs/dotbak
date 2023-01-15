@@ -18,6 +18,10 @@ pub enum Error {
     /// An error occured while parsing the configuration file.
     #[snafu(display("Error parsing the configuration: {}", source))]
     ConfigParsing { source: toml::de::Error },
+
+    /// An error occured while serializing the configuration file.
+    #[snafu(display("Error serializing the configuration: {}", source))]
+    ConfigSerializing { source: toml::ser::Error },
 }
 
 impl From<io::Error> for Error {
@@ -32,5 +36,11 @@ impl From<io::Error> for Error {
 impl From<toml::de::Error> for Error {
     fn from(source: toml::de::Error) -> Self {
         Error::ConfigParsing { source }
+    }
+}
+
+impl From<toml::ser::Error> for Error {
+    fn from(source: toml::ser::Error) -> Self {
+        Error::ConfigSerializing { source }
     }
 }

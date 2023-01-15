@@ -35,3 +35,18 @@ impl Config {
         self.dotfiles.retain(|d| d != &dotfile)
     }
 }
+
+/// Default implementation for `Config`.
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            repository: String::new(),
+            dotfiles: vec![
+                PathBuf::from(".bashrc"),
+                PathBuf::from(".bash_profile"),
+                PathBuf::from(".zshrc"),
+                PathBuf::from(".zprofile"),
+            ],
+        }
+    }
+}

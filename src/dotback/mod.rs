@@ -26,39 +26,33 @@ pub struct Dotback {
 /// Public API for `Dotback`.
 impl Dotback {
     /// Loads a `Dotback` instance from pre-existing configuration. If the configuration does not
-    /// exist, it creates it and initializes the git repository.
+    /// exist, it returns an error.
     /// Note that the configuration is loaded from the default location, `~/.dotback/config.toml`.
     pub fn load() -> Result<Self, Error> {
-        let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
-        let dotback_path = home_path.join(".dotback");
+        let mut dotback = Dotback::new();
 
-        let mut dotback = Dotback {
-            home_path,
-            dotback_path,
-            config: Config::default(),
-        };
-
-        // If the `.dotback` directory does not exist, create it and write the default configuration, and
-        // then initialize the git repository.
+        // If the `.dotback` directory does not exist, return an error.
         if !dotback.dotback_path.exists() {
-            dotback.init()?;
-        } else {
-            dotback.read_config()?;
+            return Err(Error::DotbackDirectoryNotFound);
         }
+
+        dotback.read_config()?;
 
         Ok(dotback)
     }
 
     /// Initializes a `Dotback` instance with the default configuration.
     /// Note that the configuration is stored to the default location, `~/.dotback/config.toml`.
-    pub fn init(&mut self) -> Result<(), Error> {
-        fs::create_dir(&self.dotback_path)?;
+    pub fn init() -> Result<Dotback, Error> {
+        let dotback = Dotback::new();
 
-        self.write_config()?;
+        fs::create_dir_all(&dotback.dotback_path)?;
 
-        self.init_repository()?;
+        dotback.write_config()?;
 
-        Ok(())
+        dotback.init_repository()?;
+
+        Ok(dotback)
     }
 
     /// Adds a new dotfile inclusion pattern to the configuration.
@@ -78,6 +72,18 @@ impl Dotback {
 
 /// Private API for `Dotback`.
 impl Dotback {
+    /// Creates a new `Dotback` instance.
+    fn new() -> Self {
+        let home_path = home_dir().unwrap(); // TODO: get rid of unwrap.
+        let dotback_path = home_path.join(".dotback");
+
+        Dotback {
+            home_path,
+            dotback_path,
+            config: Config::default(),
+        }
+    }
+
     /// Returns the path to the configuration file.
     fn config_path(&self) -> PathBuf {
         self.dotback_path.join("config.toml")

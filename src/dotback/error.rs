@@ -9,6 +9,12 @@ pub enum Error {
     #[snafu(display("File does not exist: {}", source))]
     FileNotFound { source: io::Error },
 
+    /// The `.dotback` directory could not be found.
+    #[snafu(display(
+        "The '.dotback' directory could not be found! Please run 'dotback init' to create it."
+    ))]
+    DotbackDirectoryNotFound,
+
     /// An error occurred while reading/writing to the configuration file. This does not apply to
     /// parsing errors, instead, it applies to errors that occur while reading/writing the file
     /// (like not being able to open the file, or not having permissions to read/write to the file).

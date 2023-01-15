@@ -17,6 +17,7 @@ const DEFAULT_CONFIGURATION_PATH: &str = "~/.dotback/config.toml";
 pub struct Dotback {
     /// The path to the configuration file.
     config_path: PathBuf,
+
     /// The configuration for dotback.
     config: Config,
 }

@@ -83,6 +83,11 @@ impl Dotback {
         self.dotback_path.join("config.toml")
     }
 
+    /// Returns the path to the git repository.
+    fn repository_path(&self) -> PathBuf {
+        self.dotback_path.join("dotfiles")
+    }
+
     /// Set the config to the default configuration.
     fn set_config_default(&mut self) {
         self.config = Config::default();
@@ -127,6 +132,8 @@ impl Dotback {
 
     /// Initializes the dotback repository.
     fn init_repository(&self) -> Result<(), Error> {
+        fs::create_dir_all(self.repository_path())?;
+
         todo!()
     }
 }

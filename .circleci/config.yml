@@ -10,11 +10,19 @@ executors:
         environment:
             CARGO_TERM_COLOR: always
             CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+    mac:
+        macos:
+            xcode: 14.3.1
+
+        environment:
+            CARGO_TERM_COLOR: always
+            CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+    
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-    test:
+    test-linux:
         executor: linux
 
         # # Add steps to the job
@@ -32,6 +40,6 @@ jobs:
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-    test-dotbak:
+    test:
         jobs:
-            - test
+            - test-linux

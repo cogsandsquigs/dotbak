@@ -2,7 +2,6 @@
 
 use super::*;
 use assert_fs::prelude::*;
-use std::fs;
 
 /// Test if the default configuration can be loaded from a file that doesn't exist.
 #[test]

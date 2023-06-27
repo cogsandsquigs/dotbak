@@ -5,7 +5,7 @@ version: 2.1
 executors:
     linux:
         docker:
-            - image: rust:latest
+            - image: rust:slim
 
         environment:
             CARGO_TERM_COLOR: always

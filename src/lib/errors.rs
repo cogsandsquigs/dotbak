@@ -1,6 +1,9 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
+/// A helper return type for functions that return `Result<T, DotbakError>`.
+pub type Result<T> = std::result::Result<T, DotbakError>;
+
 /// The main error type for the program itself.
 #[derive(Debug, Error, Diagnostic)]
 pub enum DotbakError {

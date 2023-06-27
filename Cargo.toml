@@ -21,3 +21,7 @@
 	# Filesystem
 	dirs = "5"   # Getting the user's home directory
 	glob = "0.3" # For globbing files/directories
+
+[lib]
+	name = "dotbak"
+	path = "src/lib/mod.rs"

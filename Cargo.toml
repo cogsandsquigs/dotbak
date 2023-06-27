@@ -2,7 +2,7 @@
 	authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
 	description = "Manage and backup dotfiles with ease!"
 	edition     = "2021"
-	name        = "dotback"
+	name        = "dotbak"
 	version     = "0.0.0"
 
 [dependencies]

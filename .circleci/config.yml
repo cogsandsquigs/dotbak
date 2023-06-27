@@ -5,7 +5,7 @@ version: 2.1
 executors:
     linux:
         docker:
-            - image: rust:alpine
+            - image: rust:latest
 
         environment:
             CARGO_TERM_COLOR: always

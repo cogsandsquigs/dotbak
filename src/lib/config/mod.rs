@@ -1,3 +1,5 @@
+mod tests;
+
 use crate::errors::DotbakError;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};

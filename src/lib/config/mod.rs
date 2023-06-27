@@ -58,12 +58,7 @@ impl Config {
     /// on windows instead of `AppData\Roaming` (although Windows is not a target platform
     /// for this application).
     fn config_path() -> PathBuf {
-        // We use `config_local_dir` instead of `config_dir` because AppData\Local makes
-        // more sense for this application on windows (even though it's not a target). For
-        // other platforms, it's the same as `config_dir`.
-        let config_dir = dirs::config_local_dir().unwrap();
-
-        config_dir.join("dotbak/config.toml")
+        Self::config_dir().join("config.toml")
     }
 
     /// Load the configuration from the given path. If the configuration file or folder does not exist,

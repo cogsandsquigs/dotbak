@@ -23,7 +23,7 @@ pub enum DotbakError {
     #[error("No home directory found for this computer.")]
     #[diagnostic(
         code(dotbak::error::no_home_dir),
-        help("This error should rarely happen, if at all. Somehow set your home directory for this computer?\nRelevant documentation for this error: https://docs.rs/dirs/latest/dirs/fn.config_local_dir.html")
+        help("This error should rarely happen, if at all. Somehow set your home directory for this computer? Relevant documentation on the internals that create this error: https://docs.rs/dirs/latest/dirs/fn.config_local_dir.html")
     )]
     NoHomeDir,
 }

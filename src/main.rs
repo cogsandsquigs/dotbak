@@ -5,10 +5,11 @@ mod errors;
 use crate::config::Config;
 use clap::Parser;
 use cli::Cli;
-use errors::DotbakError;
+use miette::Result;
 
-fn main() -> Result<(), DotbakError> {
+fn main() -> Result<()> {
     let cli = Cli::parse();
+    let config = Config::load_config()?;
 
     Ok(())
 }

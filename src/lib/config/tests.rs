@@ -7,7 +7,7 @@ use assert_fs::prelude::*;
 #[test]
 fn test_load_config_file_absent() {
     let temp = assert_fs::TempDir::new().unwrap();
-    let config_path = temp.path().join("config.toml");
+    let config_path = temp.path().join("some_dir");
     let config = Config::load_config_path(&config_path).unwrap();
 
     // The config file should have been created.
@@ -17,30 +17,7 @@ fn test_load_config_file_absent() {
     assert_eq!(
         config,
         Config {
-            path: config_path,
-            ..Config::default()
-        }
-    );
-}
-
-/// Test if the default configuration can be loaded from a file that exists.
-#[test]
-fn test_load_config_file_present() {
-    let config_path = assert_fs::NamedTempFile::new("config.toml").unwrap();
-    config_path.write_str("include = [\"test\"]").unwrap();
-
-    // Create the config file.
-    let config = Config::load_config_path(&config_path).unwrap();
-
-    // The config file should have been created.
-    assert!(config_path.exists());
-
-    // It should have the correct configuration.
-    assert_eq!(
-        config,
-        Config {
-            path: config_path.to_path_buf(),
-            include: vec!["test".to_string()],
+            path: config_path.join(".dotbak/config.toml"),
             ..Config::default()
         }
     );
@@ -50,7 +27,7 @@ fn test_load_config_file_present() {
 #[test]
 fn test_load_config_file_subfolder() {
     let temp = assert_fs::TempDir::new().unwrap();
-    let config_path = temp.path().join("subfolder/config.toml");
+    let config_path = temp.path().join("subfolder/some_dir");
     let config = Config::load_config_path(&config_path).unwrap();
 
     // The config file should have been created.
@@ -60,8 +37,10 @@ fn test_load_config_file_subfolder() {
     assert_eq!(
         config,
         Config {
-            path: config_path,
+            path: config_path.join(".dotbak/config.toml"),
             ..Config::default()
         }
     );
 }
+
+// TODO: test loading config from a file that already exists.

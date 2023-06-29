@@ -1,43 +1,37 @@
 #![cfg(test)]
 
 use super::*;
-use assert_fs::prelude::*;
+use assert_fs::{prelude::FileTouch, NamedTempFile};
 
 /// Test if the default configuration can be loaded from a file that doesn't exist.
 #[test]
+#[should_panic(expected = "ConfigNotFound")]
 fn test_load_config_file_absent() {
-    let temp = assert_fs::TempDir::new().unwrap();
-    let config_path = temp.path().join("some_dir");
-    let config = Config::load_config_path(&config_path).unwrap();
+    // This does not create a file, but just gives a (temp) path to said file.
+    let config_path = NamedTempFile::new("config.toml").unwrap();
 
-    // The config file should have been created.
-    assert!(config_path.exists());
-
-    // It should contain the default configuration.
-    assert_eq!(
-        config,
-        Config {
-            path: config_path.join(".dotbak/config.toml"),
-            ..Config::default()
-        }
-    );
+    // THIS SHOULD PANIC
+    let _config = Config::load_config(&config_path).unwrap();
 }
 
-/// test if the configuration can create sub-folders (like a new folder in ~/.config).
+/// Tests if the default configuration can be loaded from a file that exists.
 #[test]
-fn test_load_config_file_subfolder() {
-    let temp = assert_fs::TempDir::new().unwrap();
-    let config_path = temp.path().join("subfolder/some_dir");
-    let config = Config::load_config_path(&config_path).unwrap();
+fn test_load_config_file_exists() {
+    // This does not create a file, but just gives a (temp) path to said file.
+    let config_path = NamedTempFile::new("config.toml").unwrap();
+    // *Now* we create the file.
+    FileTouch::touch(&config_path).unwrap();
 
     // The config file should have been created.
     assert!(config_path.exists());
+
+    let config = Config::load_config(&config_path).unwrap();
 
     // It should contain the default configuration.
     assert_eq!(
         config,
         Config {
-            path: config_path.join(".dotbak/config.toml"),
+            path: config_path.to_path_buf(),
             ..Config::default()
         }
     );

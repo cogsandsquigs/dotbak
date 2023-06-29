@@ -4,3 +4,7 @@
 # dotbak
 
 Manage and backup dotfiles with ease!
+
+## Configuration
+
+Configuration for `dotbak` is stored in `$HOME/.dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.

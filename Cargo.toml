@@ -2,11 +2,11 @@
 	authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
 	description = "Manage and backup dotfiles with ease!"
 	edition     = "2021"
+	license     = "AGPL-3.0"
 	name        = "dotbak"
 	version     = "0.0.0"
 
 [dependencies]
-
 	# CLI parsing
 	clap = { version = "4", features = ["derive"] }
 
@@ -22,7 +22,12 @@
 	dirs = "5"   # Getting the user's home directory
 	glob = "0.3" # For globbing files/directories
 
+	# Misc.
+	gix         = "0.47.0" # Manage git repositories
+	lazy_static = "1.4.0"  # Get a static path to the user's home directory at runtime
+
 [dev-dependencies]
+	# Filesystem
 	assert_fs = "1.0.13" # For testing filesystem operations
 
 [lib]

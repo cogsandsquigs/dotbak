@@ -1,7 +1,6 @@
 use crate::errors::DotbakError;
 
 use super::errors::Result;
-use lazy_static::lazy_static;
 use std::path::PathBuf;
 
 /// The name of the configuration file.

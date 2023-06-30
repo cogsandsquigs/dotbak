@@ -7,27 +7,27 @@ use super::DotbakError;
 #[derive(Debug, Error, Diagnostic)]
 pub enum GitError {
     /// There was an error initializing the git repository.
-    #[error("There was an error initializing the git repository: {0}")]
+    #[error(transparent)]
     #[diagnostic(code(dotbak::error::git::init))]
     Init(#[from] gix::init::Error),
 
     /// There was an error cloning the git repository.
-    #[error("There was an error cloning the git repository: {0}")]
+    #[error(transparent)]
     #[diagnostic(code(dotbak::error::git::clone))]
     Clone(#[from] gix::clone::Error),
 
     /// There was an error fetching the git repository.
-    #[error("There was an error fetching the git repository: {0}")]
+    #[error(transparent)]
     #[diagnostic(code(dotbak::error::git::fetch))]
     Fetch(#[from] gix::clone::fetch::Error),
 
     /// There was an error with the main worktree.
-    #[error("There was an error with the main worktree: {0}")]
+    #[error(transparent)]
     #[diagnostic(code(dotbak::error::git::worktree))]
     Worktree(#[from] gix::clone::checkout::main_worktree::Error),
 
     /// There was an error finding the remote.
-    #[error("There was an error finding the remote: {0}")]
+    #[error(transparent)]
     #[diagnostic(code(dotbak::error::git::find))]
     Find(#[from] gix::remote::find::existing::Error),
 }

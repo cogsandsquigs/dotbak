@@ -22,13 +22,13 @@
 	dirs = "5"   # Getting the user's home directory
 	glob = "0.3" # For globbing files/directories
 
-	# Misc.
-
-	gix = { version = "0.48", features = [ # Manage git repositories
-		"blocking-network-client",
+	# Git
+	gix = { version = "0.48", features = [
+		"blocking-http-transport-curl",
+		"serde",
 	] }
-	gix-url = { version = "0.20", features = ["serde"] } # Git URL parsing
 
+	# Misc.
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
 

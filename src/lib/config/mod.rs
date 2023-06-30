@@ -2,7 +2,7 @@ mod tests;
 
 use crate::errors::{config::ConfigError, Result};
 use crate::locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
-use gix_url::Url;
+use gix::url::Url;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::{fs, path::PathBuf};

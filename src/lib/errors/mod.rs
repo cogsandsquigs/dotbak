@@ -1,7 +1,7 @@
 pub mod config;
 pub mod git;
 
-use self::config::ConfigError;
+use self::{config::ConfigError, git::GitError};
 use miette::Diagnostic;
 use std::io;
 use thiserror::Error;
@@ -9,19 +9,40 @@ use thiserror::Error;
 /// A helper return type for functions that return `Result<T, DotbakError>`.
 pub type Result<T> = std::result::Result<T, DotbakError>;
 
-/// The main error type for the program itself.
+/// The main error type for the program itself. Note that the errors are wrapped in `Box`es to avoid
+/// having rather large error types (thanks to `clippy` for pointing this out).
 #[derive(Debug, Error, Diagnostic)]
 pub enum DotbakError {
     /// An IO operations error occured.
-    #[error("IO error: {0}")]
+    #[error("An IO operations error occured: {0}")]
     #[diagnostic(code(dotbak::error::io))]
-    IO(#[from] io::Error),
+    IO(
+        #[source]
+        #[from]
+        io::Error, // No need to box this one, it's already boxed under the hood.
+    ),
 
     /// A configuration error occured.
     #[error(transparent)]
-    Config(#[from] ConfigError),
-    /// There is already a git repository initialized.
-    #[error("There is already a git repository initialized.")]
-    #[diagnostic(code(dotbak::error::git::already_initialized))]
-    GitAlreadyInitialized,
+    Config(#[from] Box<ConfigError>),
+
+    /// A git error occured.
+    #[error(transparent)]
+    Git(#[from] Box<GitError>),
+}
+
+/* Convenience implementations for converting boxed errors into dotbak errors. */
+
+/// Convert `ConfigError` into a `DotbakError`
+impl From<ConfigError> for DotbakError {
+    fn from(err: ConfigError) -> Self {
+        Self::Config(Box::new(err))
+    }
+}
+
+/// Convert `gix::init::Error` into a `DotbakError`
+impl From<gix::init::Error> for DotbakError {
+    fn from(err: gix::init::Error) -> Self {
+        Self::Git(Box::new(GitError::Init(err)))
+    }
 }

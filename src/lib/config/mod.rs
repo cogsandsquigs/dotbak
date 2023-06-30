@@ -9,7 +9,8 @@ use std::{fs, path::PathBuf};
 /// The configuration that Dotbak uses to run.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Config {
-    /// The location of the configuration file.
+    /// The location of the configuration file. This is a temporary value that will be overwritten
+    /// later when loading in `Config::load_config`, so it is not serialized.
     #[serde(skip)]
     pub path: PathBuf,
 
@@ -55,6 +56,8 @@ impl Config {
 
         let config_str = fs::read_to_string(path)?;
         config = toml::from_str(&config_str)?;
+
+        // IMPORTANT: This is the only place where the path is set.
         config.path = path.to_path_buf();
 
         Ok(config)

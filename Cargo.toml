@@ -23,12 +23,11 @@
 	glob = "0.3" # For globbing files/directories
 
 	# Misc.
-	gix         = "0.47.0" # Manage git repositories
-	lazy_static = "1.4.0"  # Get a static path to the user's home directory at runtime
+	gix         = "0.48" # Manage git repositories and such
+	lazy_static = "1"    # Get a static path to the user's home directory at runtime
 
 [dev-dependencies]
-	# Filesystem
-	assert_fs = "1.0.13" # For testing filesystem operations
+	assert_fs = "1" # For testing filesystem operations
 
 [lib]
 	name = "dotbak"

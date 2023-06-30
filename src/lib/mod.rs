@@ -29,10 +29,15 @@ impl Dotbak {
 
             // If the configuration file does not exist, create it.
             // TODO: log that the configuration file was created, not loaded.
-            Err(DotbakError::Config(ConfigError::ConfigNotFound(_))) => {
-                let config = Config::load_config(&CONFIG_PATH)?;
+            Err(DotbakError::Config(err)) => {
+                // Have to dereference the error to check if it's a `ConfigNotFound` error.
+                if let ConfigError::ConfigNotFound(_) = *err {
+                    let config = Config::load_config(&CONFIG_PATH)?;
 
-                Ok(Dotbak { config })
+                    Ok(Dotbak { config })
+                } else {
+                    Err(DotbakError::Config(err))
+                }
             }
 
             // If the error is not a `ConfigNotFound` error, return it.

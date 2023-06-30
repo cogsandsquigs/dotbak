@@ -30,18 +30,18 @@ pub enum ConfigError {
     ConfigAlreadyExists(PathBuf),
 }
 
-/* Convenience implementations for converting toml ser/de errors into config errors. */
+/* Convenience implementations for converting toml ser/de errors into dotbak errors. */
 
 /// Convert `toml::de::Error` into a `DotbakError`
 impl From<toml::de::Error> for DotbakError {
     fn from(err: toml::de::Error) -> Self {
-        Self::Config(ConfigError::ConfigDeserialize(err))
+        Self::Config(Box::new(ConfigError::ConfigDeserialize(err)))
     }
 }
 
 /// Convert `toml::ser::Error` into a `DotbakError`
 impl From<toml::ser::Error> for DotbakError {
     fn from(err: toml::ser::Error) -> Self {
-        Self::Config(ConfigError::ConfigSerialize(err))
+        Self::Config(Box::new(ConfigError::ConfigSerialize(err)))
     }
 }

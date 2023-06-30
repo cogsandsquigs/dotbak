@@ -23,7 +23,11 @@
 	glob = "0.3" # For globbing files/directories
 
 	# Misc.
-	gix = "0.48" # Manage git repositories and such
+
+	gix = { version = "0.48", features = [ # Manage git repositories
+		"blocking-network-client",
+	] }
+	gix-url = { version = "0.20", features = ["serde"] } # Git URL parsing
 
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.

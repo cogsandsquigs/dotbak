@@ -45,9 +45,9 @@ impl From<ConfigError> for DotbakError {
     }
 }
 
-/// Convert `gix::init::Error` into a `DotbakError`
-impl From<gix::init::Error> for DotbakError {
-    fn from(err: gix::init::Error) -> Self {
-        Self::Git(Box::new(GitError::Init(err)))
+/// Convert `GitError` into a `DotbakError`
+impl From<GitError> for DotbakError {
+    fn from(err: GitError) -> Self {
+        Self::Git(Box::new(err))
     }
 }

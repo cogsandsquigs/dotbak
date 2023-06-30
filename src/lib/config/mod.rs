@@ -2,6 +2,7 @@ mod tests;
 
 use crate::errors::{config::ConfigError, Result};
 use crate::locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
+use gix_url::Url;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::{fs, path::PathBuf};
@@ -14,19 +15,25 @@ pub struct Config {
     #[serde(skip)]
     pub path: PathBuf,
 
+    /// The URL for the remote git repository. This is the URL that will be used to clone the
+    /// repository if it doesn't exist, and to push and pull changes to and from the repository.
+    /// Also, incase the local repository is deleted or corrupted, this URL will be used to clone
+    /// the repository again.
+    pub repository_url: Option<Url>,
+
     /// The inclusion patterns for files to backup. This is a list of glob patterns to match
     /// against the files in the home directory. These are all relative to the home directory.
     /// When both include and exclude patterns match a file, the exclude pattern takes precedence.
     /// The default value is `[".dotbak/config.toml"]`, which is the configuration file itself.
     #[serde(default = "Config::default_include")]
-    pub include: Vec<String>,
+    pub include: Vec<PathBuf>,
 
     /// The exclusion patterns for files to backup. This is a list of glob patterns to match
     /// against the files in the home directory. These are all relative to the home directory.
     /// When both include and exclude patterns match a file, the exclude pattern takes precedence.
     /// The default value is `[".dotbak/repo"]`, which is the configuration file itself.
     #[serde(default = "Config::default_exclude")]
-    pub exclude: Vec<String>,
+    pub exclude: Vec<PathBuf>,
 }
 
 impl Default for Config {
@@ -34,6 +41,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             path: PathBuf::new(), // This is a temporary value that will be overwritten later.
+            repository_url: None, // No default value.
             include: Config::default_include(),
             exclude: Config::default_exclude(),
         }
@@ -102,12 +110,12 @@ impl Config {
 /// Private API for the configuration.
 impl Config {
     /// Returns the default for `include`.
-    fn default_include() -> Vec<String> {
-        vec![".dotbak/".to_string() + CONFIG_FILE_NAME]
+    fn default_include() -> Vec<PathBuf> {
+        vec![PathBuf::from(".dotbak/").join(CONFIG_FILE_NAME)]
     }
 
     /// Returns the default for `exclude`.
-    fn default_exclude() -> Vec<String> {
-        vec![".dotbak/".to_string() + REPO_FOLDER_NAME]
+    fn default_exclude() -> Vec<PathBuf> {
+        vec![PathBuf::from(".dotbak/").join(REPO_FOLDER_NAME)]
     }
 }

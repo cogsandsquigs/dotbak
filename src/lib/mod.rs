@@ -4,11 +4,11 @@ pub mod git;
 pub mod locations;
 
 use config::Config;
-use errors::Result;
+use errors::{config::ConfigError, DotbakError, Result};
 use locations::CONFIG_PATH;
 
-#[cfg(test)]
-use std::path::Path;
+// #[cfg(test)]
+// use std::path::Path;
 
 /// The main structure to manage the program's actions and such.
 pub struct Dotbak {
@@ -18,8 +18,31 @@ pub struct Dotbak {
 
 /// Public API for the program.
 impl Dotbak {
-    /// Create a new instance of the program. This also automatically loads the configuration.
+    /// Create a new instance of the program. If the configuration file does not exist, it will be created.
+    /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
+        // Try to load the configuration file.
+        match Config::load_config(&CONFIG_PATH) {
+            // If the configuration file exists, load it.
+            // TODO: log that the configuration file was loaded, not created.
+            Ok(config) => Ok(Dotbak { config }),
+
+            // If the configuration file does not exist, create it.
+            // TODO: log that the configuration file was created, not loaded.
+            Err(DotbakError::Config(ConfigError::ConfigNotFound(_))) => {
+                let config = Config::load_config(&CONFIG_PATH)?;
+
+                Ok(Dotbak { config })
+            }
+
+            // If the error is not a `ConfigNotFound` error, return it.
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Creates a new instance of the program. If the configuration file does not exist, an error will be returned.
+    /// If it does exist, it will be loaded.
+    pub fn load() -> Result<Self> {
         let config: Config = Config::load_config(&CONFIG_PATH)?;
 
         Ok(Dotbak { config })
@@ -28,18 +51,4 @@ impl Dotbak {
 
 /// Public testing API for the program.
 #[cfg(test)]
-impl Dotbak {
-    /// Create a new instance of the program with a custom configuration path.
-    /// This is mostly used for testing.
-    pub fn new_with_config_path<P: AsRef<Path>>(config_path: P) -> Result<Self> {
-        let config = Config::load_config(config_path)?;
-
-        Ok(Dotbak { config })
-    }
-
-    /// Create a new instance of the program with a custom configuration.
-    /// This is mostly used for testing.
-    pub fn new_with_config(config: Config) -> Self {
-        Dotbak { config }
-    }
-}
+impl Dotbak {}

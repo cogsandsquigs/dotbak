@@ -1,8 +1,15 @@
 mod tests;
 
-use crate::{errors::Result, Dotbak};
-use gix::url::Url;
-use gix::{self, Repository};
+use crate::{
+    errors::{
+        git::{CloneSnafu, FetchSnafu, InitSnafu, WorktreeSnafu},
+        io::{CreateSnafu, DeleteSnafu},
+        Result,
+    },
+    Dotbak,
+};
+use gix::{self, url::Url, Repository};
+use snafu::ResultExt;
 use std::path::Path;
 
 /// Public API for Dotbak.
@@ -20,11 +27,13 @@ impl Dotbak {
 
         // Create the directory if it does not exist.
         if !path.exists() {
-            std::fs::create_dir_all(path)?;
+            std::fs::create_dir_all(path).context(CreateSnafu {
+                path: path.to_path_buf(),
+            })?;
         }
 
         // Get the main repository object.
-        let repo = gix::init(path)?;
+        let repo = gix::init(path).context(InitSnafu)?;
 
         Ok(repo)
     }
@@ -45,17 +54,21 @@ impl Dotbak {
 
         // Create the directory if it does not exist.
         if !path.exists() {
-            std::fs::create_dir_all(path)?;
+            std::fs::create_dir_all(path).context(CreateSnafu {
+                path: path.to_path_buf(),
+            })?;
         }
 
         // println!("Url: {:?}", url.to_bstring());
 
-        let mut prepare_clone = gix::prepare_clone(url, path)?; // TODO: get rid of clone.
+        let mut prepare_clone =
+            gix::prepare_clone(url.clone(), path).context(CloneSnafu { url: url.clone() })?; // TODO: get rid of clone.
 
         // println!("Cloning {url:?} into {path:?}...");
 
         let (mut prepare_checkout, _) = prepare_clone
-            .fetch_then_checkout(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+            .fetch_then_checkout(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
+            .context(FetchSnafu { url })?;
         // TODO: log progress.
 
         // println!(
@@ -64,7 +77,8 @@ impl Dotbak {
         // );
 
         let (repo, _) = prepare_checkout
-            .main_worktree(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)?;
+            .main_worktree(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
+            .context(WorktreeSnafu)?;
 
         // println!(
         //     "Repo cloned into {:?}",
@@ -89,17 +103,22 @@ impl Dotbak {
 
         Ok(repo)
     }
+
+    /// Deletes the git repository. It will return an error if the repository is not initialized or is not
+    /// there. Will not return an error if the repository is not empty.
+    /// TODO: implement logging and such.
+    /// TODO: Move symlinked files to their original location.
+    pub fn delete_repo<P>(path: P) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+
+        // Delete the repository using `fs::remove_dir_all`.
+        std::fs::remove_dir_all(path).context(DeleteSnafu {
+            path: path.to_path_buf(),
+        })?;
+
+        Ok(())
+    }
 }
-
-// TODO: Implement this, but move symlinked dotfiles to their resp. locations.
-// /// Delete the git repository. It will return an error if the repository is not initialized or is not
-// /// there. Will not return an error if the repository is not empty.
-// pub fn delete_repo<P>(path: P) -> Result<()>
-// where
-//     P: AsRef<Path>,
-// {
-//     // Delete the repository using `fs::remove_dir_all`.
-//     std::fs::remove_dir_all(path)?;
-
-//     Ok(())
-// }

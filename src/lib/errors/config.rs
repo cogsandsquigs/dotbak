@@ -1,33 +1,33 @@
 use super::DotbakError;
 use miette::Diagnostic;
+use snafu::Snafu;
 use std::path::PathBuf;
-use thiserror::Error;
 
 /// A helper return type for functions that return `Result<T, DotbakError>`.
 pub type ConfigResult<T> = std::result::Result<T, ConfigError>;
 
 /// All errors related to the configuration file.
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, Snafu, Diagnostic)]
 pub enum ConfigError {
     /// A configuration parsing/deserialization error occured.
-    #[error("Error deserializing the configuration: {0}")]
+    #[snafu(display("Error deserializing the configuration: {source}"))]
     #[diagnostic(code(dotbak::error::config::deserialize))]
-    ConfigDeserialize(#[from] toml::de::Error),
+    ConfigDeserialize { source: toml::de::Error },
 
     /// A configuration serialization error occured.
-    #[error("Error serializing the configuration: {0}")]
+    #[snafu(display("Error serializing the configuration: {source}"))]
     #[diagnostic(code(dotbak::error::config::serialize))]
-    ConfigSerialize(#[from] toml::ser::Error),
+    ConfigSerialize { source: toml::ser::Error },
 
     /// Configuration file not found.
-    #[error("The configuration file '{0}' does not exist!")]
+    #[snafu(display("The configuration file '{}' does not exist!", path.display()))]
     #[diagnostic(code(dotbak::error::config::not_found))]
-    ConfigNotFound(PathBuf),
+    ConfigNotFound { path: PathBuf },
 
     /// The configuration file already exists.
-    #[error("The configuration file '{0}' already exists!")]
+    #[snafu(display("The configuration file '{}' already exists!", path.display()))]
     #[diagnostic(code(dotbak::error::config::already_exists))]
-    ConfigAlreadyExists(PathBuf),
+    ConfigAlreadyExists { path: PathBuf },
 }
 
 /* Convenience implementations for converting toml ser/de errors into dotbak errors. */
@@ -35,13 +35,17 @@ pub enum ConfigError {
 /// Convert `toml::de::Error` into a `DotbakError`
 impl From<toml::de::Error> for DotbakError {
     fn from(err: toml::de::Error) -> Self {
-        Self::Config(Box::new(ConfigError::ConfigDeserialize(err)))
+        Self::Config {
+            source: ConfigError::ConfigDeserialize { source: err },
+        }
     }
 }
 
 /// Convert `toml::ser::Error` into a `DotbakError`
 impl From<toml::ser::Error> for DotbakError {
     fn from(err: toml::ser::Error) -> Self {
-        Self::Config(Box::new(ConfigError::ConfigSerialize(err)))
+        Self::Config {
+            source: ConfigError::ConfigSerialize { source: err },
+        }
     }
 }

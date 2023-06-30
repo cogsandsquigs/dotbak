@@ -15,8 +15,8 @@
 	toml  = "0.7"
 
 	# Error handling
-	miette    = { version = "5", features = ["fancy"] }
-	thiserror = "1"
+	miette = { version = "5", features = ["fancy"] } # For pretty errors
+	snafu  = "0.7.4"                                 # For error handling
 
 	# Filesystem
 	dirs = "5"   # Getting the user's home directory

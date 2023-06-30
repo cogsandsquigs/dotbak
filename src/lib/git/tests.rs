@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{
-    errors::{git::GitError, DotbakError},
+    errors::{git::GitError, io::IoError, DotbakError},
     Dotbak,
 };
 use assert_fs::TempDir;
@@ -76,10 +76,12 @@ fn test_init_repo_path_exists_already() {
     println!("{}", err);
 
     // Check that it is a git init error.
-    assert!(match err {
-        DotbakError::Git(err) => matches!(*err, GitError::Init(_)),
-        _ => false,
-    });
+    assert!(matches!(
+        err,
+        DotbakError::Git {
+            source: GitError::Init { .. }
+        }
+    ));
 }
 
 /// Test if we can clone a remote repository into a given path.
@@ -179,8 +181,63 @@ fn test_clone_repo_path_exists_already() {
     println!("{}", err);
 
     // Check that it is a git clone error.
-    assert!(match err {
-        DotbakError::Git(err) => matches!(*err, GitError::Clone(_)),
-        _ => false,
-    });
+    assert!(matches!(
+        err,
+        DotbakError::Git {
+            source: GitError::Clone { .. }
+        }
+    ));
+}
+
+/// Test the deletion of a repository.
+#[test]
+fn test_delete_repo() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path();
+
+    // Initialize the repository.
+    let _repo = Dotbak::init_repo(repo_dir).unwrap();
+
+    // Check if the repository exists.
+    assert!(repo_dir.exists());
+
+    // Check if the .git folder exists.
+    assert!(repo_dir.join(".git").exists());
+
+    // Delete the repository.
+    Dotbak::delete_repo(repo_dir).unwrap();
+
+    // Check if the repository exists.
+    assert!(!repo_dir.exists());
+}
+
+/// Test the deletion of a repository that doesn't exist.
+#[test]
+fn test_delete_repo_nonexistent() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path().join("some/sub/folders");
+
+    // Delete the repository.
+    let result = Dotbak::delete_repo(repo_dir);
+
+    // Check if the result is an error.
+    assert!(result.is_err());
+
+    let err = result.unwrap_err();
+
+    println!("{}", err);
+
+    // Check that it is an IO error.
+    assert!(matches!(
+        err,
+        DotbakError::Io {
+            source: IoError::Delete { .. }
+        }
+    ));
 }

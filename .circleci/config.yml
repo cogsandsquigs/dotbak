@@ -5,7 +5,7 @@ version: 2.1
 executors:
     linux:
         docker:
-            - image: rust:latest
+            - image: rust:latest # `latest` instead of `slim` because we need OpenSSL bindnigs.
 
         environment:
             CARGO_TERM_COLOR: always
@@ -31,14 +31,6 @@ jobs:
 
         steps:
             - checkout
-            # - run:
-            #       name: "Install dependencies"
-
-            #       # # Use the latest version of Rust
-            #       # # See: https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
-            #       command: |
-            #           apt-get update &&
-            #           apt-get install -y libssl-dev pkg-config
             - run:
                   name: "Test dotbak"
                   # TODO: parallelize tests

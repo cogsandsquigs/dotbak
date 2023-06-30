@@ -1,19 +1,41 @@
-use crate::{errors::Result, locations::repo_path, Dotbak};
-use gix;
+mod tests;
 
-/// Public git API for the program.
+use crate::{errors::Result, Dotbak};
+use gix::{self, Repository};
+use std::path::Path;
+
+/// Public API for Dotbak.
 impl Dotbak {
-    /// Initialize the git repository. `force` will force the initialization of the repository: if the
-    /// repository is already initialized, it will delete the current repository and initialize a new one.
-    /// If `force` is `false`, it will return an error if the repository is already initialized.
-    pub fn init_git_repo(&self, force: bool) -> Result<()> {
-        let repo_path = repo_path()?;
+    /// Initialize the git repository. It will return an error if the repository is already initialized.
+    /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
+    /// directory does not exist, it will be created.
+    pub fn init_repo<P>(path: P) -> Result<Repository>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+
+        // Create the directory if it does not exist.
+        if !path.exists() {
+            std::fs::create_dir_all(path)?;
+        }
 
         // Get the main repository object.
-        let repo = gix::init_bare(repo_path)?;
+        let repo = gix::init(path)?;
 
-        // let repo_path = Config::repo_path()?;
-
-        Ok(())
+        Ok(repo)
     }
 }
+
+// TODO: Implement this, but move symlinked dotfiles to their resp. locations.
+// /// Delete the git repository. It will return an error if the repository is not initialized or is not
+// /// there. Will not return an error if the repository is not empty.
+// pub fn delete_repo<P>(path: P) -> Result<()>
+// where
+//     P: AsRef<Path>,
+// {
+//     // Delete the repository using `fs::remove_dir_all`.
+//     std::fs::remove_dir_all(path)?;
+
+//     Ok(())
+// }

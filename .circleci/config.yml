@@ -37,7 +37,7 @@ jobs:
                   # # Use the latest version of Rust
                   # # See: https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
                   command: |
-                      sudo apt-get update &&
+                      apt-get update &&
                       apt-get install libssl-dev pkg-config
             - run:
                   name: "Test dotbak"

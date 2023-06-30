@@ -15,7 +15,7 @@
 	toml  = "0.7"
 
 	# Error handling
-	miette    = "5"
+	miette    = { version = "5", features = ["fancy"] }
 	thiserror = "1"
 
 	# Filesystem
@@ -25,6 +25,9 @@
 	# Misc.
 	gix         = "0.48" # Manage git repositories and such
 	lazy_static = "1"    # Get a static path to the user's home directory at runtime
+
+	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
+	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
 
 [dev-dependencies]
 	assert_fs = "1" # For testing filesystem operations

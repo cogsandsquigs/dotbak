@@ -5,7 +5,7 @@ pub mod locations;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};
-use locations::CONFIG_PATH;
+use locations::config_path;
 
 // #[cfg(test)]
 // use std::path::Path;
@@ -21,8 +21,10 @@ impl Dotbak {
     /// Create a new instance of the program. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
+        let config_path = config_path()?;
+
         // Try to load the configuration file.
-        match Config::load_config(&CONFIG_PATH) {
+        match Config::load_config(&config_path) {
             // If the configuration file exists, load it.
             // TODO: log that the configuration file was loaded, not created.
             Ok(config) => Ok(Dotbak { config }),
@@ -32,7 +34,7 @@ impl Dotbak {
             Err(DotbakError::Config(err)) => {
                 // Have to dereference the error to check if it's a `ConfigNotFound` error.
                 if let ConfigError::ConfigNotFound(_) = *err {
-                    let config = Config::load_config(&CONFIG_PATH)?;
+                    let config = Config::load_config(&config_path)?;
 
                     Ok(Dotbak { config })
                 } else {
@@ -48,7 +50,8 @@ impl Dotbak {
     /// Creates a new instance of the program. If the configuration file does not exist, an error will be returned.
     /// If it does exist, it will be loaded.
     pub fn load() -> Result<Self> {
-        let config: Config = Config::load_config(&CONFIG_PATH)?;
+        let config_path: std::path::PathBuf = config_path()?;
+        let config: Config = Config::load_config(config_path)?;
 
         Ok(Dotbak { config })
     }

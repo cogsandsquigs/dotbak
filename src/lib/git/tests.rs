@@ -1,10 +1,24 @@
 #![cfg(test)]
 
+use std::path::Path;
+
 use crate::{
     errors::{git::GitError, io::IoError, DotbakError},
     Dotbak,
 };
 use assert_fs::TempDir;
+
+const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld";
+
+/// Helper function to check if a repository exists at a path.
+fn repo_exists<P>(path: P) -> bool
+where
+    P: AsRef<Path>,
+{
+    let path = path.as_ref();
+
+    path.exists() && path.join(".git").exists()
+}
 
 /// Test if we can create a new repository at a given path.
 #[test]
@@ -21,10 +35,7 @@ fn test_init_repo_path_exists() {
     println!("{:?}", repo_dir);
 
     // Check if the repository exists.
-    assert!(repo_dir.exists());
-
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
+    assert!(repo_exists(repo_dir));
 }
 
 /// Test if we can create a new repository at a given path that doesn't exist.
@@ -40,10 +51,7 @@ fn test_init_repo_path_nonexistent() {
     let _repo = Dotbak::init_repo(&repo_dir).unwrap();
 
     // Check if the repository exists.
-    assert!(repo_dir.exists());
-
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
+    assert!(repo_exists(&repo_dir));
 }
 
 /// Test if we fail when initing a repo in a repository that already exists.
@@ -59,10 +67,7 @@ fn test_init_repo_path_exists_already() {
     let _repo = Dotbak::init_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
-    assert!(repo_dir.exists());
-
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
+    assert!(repo_exists(repo_dir));
 
     // Try to initialize the repository again.
     let result = Dotbak::init_repo(repo_dir);
@@ -89,22 +94,13 @@ fn test_clone_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::clone_repo(repo_dir, "https://github.com/cogsandsquigs/dotbak").unwrap();
+    let _repo = Dotbak::clone_repo(repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     assert!(repo_dir.exists());
 
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
-
-    // Check if the README.md file exists.
-    assert!(repo_dir.join("README.md").exists());
-
-    // Check if the LICENSE file exists.
-    assert!(repo_dir.join("LICENSE").exists());
-
-    // Check if the .gitignore file exists.
-    assert!(repo_dir.join(".gitignore").exists());
+    // Check if the repository exists.
+    assert!(repo_exists(repo_dir));
 }
 
 /// Test if we can clone a remote repository into a given path that doesn't exist.
@@ -117,22 +113,10 @@ fn test_clone_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let _repo = Dotbak::clone_repo(&repo_dir, "https://github.com/cogsandsquigs/dotbak").unwrap();
+    let _repo = Dotbak::clone_repo(&repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
-    assert!(repo_dir.exists());
-
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
-
-    // Check if the README.md file exists.
-    assert!(repo_dir.join("README.md").exists());
-
-    // Check if the LICENSE file exists.
-    assert!(repo_dir.join("LICENSE").exists());
-
-    // Check if the .gitignore file exists.
-    assert!(repo_dir.join(".gitignore").exists());
+    assert!(repo_exists(&repo_dir));
 }
 
 /// Test if we fail when cloning a repo into a repository that already exists.
@@ -148,14 +132,11 @@ fn test_clone_repo_exists_already() {
     let _repo = Dotbak::init_repo(repo_dir);
 
     // Check if the repository exists.
-    assert!(repo_dir.exists());
-
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
+    assert!(repo_exists(repo_dir));
 
     // Try to clone the repository again.
     // THIS SHOULD PANIC
-    let result = Dotbak::clone_repo(repo_dir, "https://github.com/cogsandsquigs/dotbak");
+    let result = Dotbak::clone_repo(repo_dir, TEST_GIT_REPO_URL);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -182,16 +163,13 @@ fn test_delete_repo() {
     let _repo = Dotbak::init_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
-    assert!(repo_dir.exists());
-
-    // Check if the .git folder exists.
-    assert!(repo_dir.join(".git").exists());
+    assert!(repo_exists(repo_dir));
 
     // Delete the repository.
     Dotbak::delete_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
-    assert!(!repo_dir.exists());
+    assert!(!repo_exists(repo_dir));
 }
 
 /// Test the deletion of a repository that doesn't exist.

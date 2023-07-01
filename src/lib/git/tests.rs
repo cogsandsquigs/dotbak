@@ -8,6 +8,7 @@ use crate::{
 };
 use assert_fs::TempDir;
 
+/// The repository URL for the test repository.
 const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld";
 
 /// Helper function to check if a repository exists at a path.

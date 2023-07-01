@@ -5,7 +5,7 @@ version: 2.1
 executors:
     linux:
         docker:
-            - image: rust:latest # `latest` instead of `slim` because we need OpenSSL bindnigs.
+            - image: rust:slim # rust:latest # `latest` instead of `slim` because we need OpenSSL bindnigs.
 
         environment:
             CARGO_TERM_COLOR: always

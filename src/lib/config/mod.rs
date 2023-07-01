@@ -6,7 +6,6 @@ use crate::errors::{
     Result,
 };
 use crate::locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
-use gix::url::Url;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::path::Path;
@@ -24,7 +23,7 @@ pub struct Config {
     /// repository if it doesn't exist, and to push and pull changes to and from the repository.
     /// Also, incase the local repository is deleted or corrupted, this URL will be used to clone
     /// the repository again.
-    pub repository_url: Option<Url>,
+    pub repository_url: Option<String>,
 
     /// The inclusion patterns for files to backup. This is a list of glob patterns to match
     /// against the files in the home directory. These are all relative to the home directory.

@@ -2,13 +2,13 @@ mod tests;
 
 use crate::{
     errors::{
-        git::{CloneSnafu, FetchSnafu, InitSnafu, WorktreeSnafu},
+        git::{CloneSnafu, InitSnafu},
         io::{CreateSnafu, DeleteSnafu},
         Result,
     },
     Dotbak,
 };
-use gix::{self, url::Url, Repository};
+use git2::{Repository, RepositoryInitOptions};
 use snafu::ResultExt;
 use std::path::Path;
 
@@ -32,8 +32,12 @@ impl Dotbak {
             })?;
         }
 
+        // Set the options.
+        let mut opts = RepositoryInitOptions::new();
+        opts.no_reinit(true);
+
         // Get the main repository object.
-        let repo = gix::init(path).context(InitSnafu)?;
+        let repo = Repository::init_opts(path, &opts).context(InitSnafu { url: None })?;
 
         Ok(repo)
     }
@@ -46,11 +50,13 @@ impl Dotbak {
     ///
     /// `url` is the URL to the remote repository.
     /// TODO: implement logging and such.
-    pub fn clone_repo<P>(path: P, url: Url) -> Result<Repository>
+    pub fn clone_repo<P, S>(path: P, url: S) -> Result<Repository>
     where
         P: AsRef<Path>,
+        S: ToString,
     {
         let path = path.as_ref();
+        let url = url.to_string();
 
         // Create the directory if it does not exist.
         if !path.exists() {
@@ -59,47 +65,8 @@ impl Dotbak {
             })?;
         }
 
-        // println!("Url: {:?}", url.to_bstring());
-
-        let mut prepare_clone =
-            gix::prepare_clone(url.clone(), path).context(CloneSnafu { url: url.clone() })?; // TODO: get rid of clone.
-
-        // println!("Cloning {url:?} into {path:?}...");
-
-        let (mut prepare_checkout, _) = prepare_clone
-            .fetch_then_checkout(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
-            .context(FetchSnafu { url })?;
-        // TODO: log progress.
-
-        // println!(
-        //     "Checking out into {:?} ...",
-        //     prepare_checkout.repo().work_dir().expect("should be there")
-        // );
-
-        let (repo, _) = prepare_checkout
-            .main_worktree(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
-            .context(WorktreeSnafu)?;
-
-        // println!(
-        //     "Repo cloned into {:?}",
-        //     repo.work_dir().expect("directory pre-created")
-        // );
-
-        // let remote: Remote = repo
-        //     .find_default_remote(gix::remote::Direction::Fetch)
-        //     .expect("always present after clone")?;
-
-        // println!(
-        //     "Default remote: {} -> {}",
-        //     remote
-        //         .name()
-        //         .expect("default remote is always named")
-        //         .as_bstr(),
-        //     remote
-        //         .url(gix::remote::Direction::Fetch)
-        //         .expect("should be the remote URL")
-        //         .to_bstring(),
-        // );
+        // Get the main repository object.
+        let repo = Repository::clone(&url, path).context(CloneSnafu { url })?;
 
         Ok(repo)
     }

@@ -5,7 +5,6 @@ use crate::{
     Dotbak,
 };
 use assert_fs::TempDir;
-use gix::url::Url;
 
 /// Test if we can create a new repository at a given path.
 #[test]
@@ -71,16 +70,12 @@ fn test_init_repo_path_exists_already() {
     // Check if the result is an error.
     assert!(result.is_err());
 
-    let err = result.unwrap_err();
-
-    println!("{}", err);
-
     // Check that it is a git init error.
     assert!(matches!(
-        err,
-        DotbakError::Git {
+        result,
+        Err(DotbakError::Git {
             source: GitError::Init { .. }
-        }
+        })
     ));
 }
 
@@ -94,11 +89,7 @@ fn test_clone_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::clone_repo(
-        repo_dir,
-        Url::from_bytes("https://github.com/cogsandsquigs/dotbak".into()).unwrap(),
-    )
-    .unwrap();
+    let _repo = Dotbak::clone_repo(repo_dir, "https://github.com/cogsandsquigs/dotbak").unwrap();
 
     // Check if the repository exists.
     assert!(repo_dir.exists());
@@ -126,11 +117,7 @@ fn test_clone_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let _repo = Dotbak::clone_repo(
-        &repo_dir,
-        Url::from_bytes("https://github.com/cogsandsquigs/dotbak".into()).unwrap(),
-    )
-    .unwrap();
+    let _repo = Dotbak::clone_repo(&repo_dir, "https://github.com/cogsandsquigs/dotbak").unwrap();
 
     // Check if the repository exists.
     assert!(repo_dir.exists());
@@ -158,7 +145,7 @@ fn test_clone_repo_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo: Result<gix::Repository, DotbakError> = Dotbak::init_repo(repo_dir);
+    let _repo = Dotbak::init_repo(repo_dir);
 
     // Check if the repository exists.
     assert!(repo_dir.exists());
@@ -168,24 +155,17 @@ fn test_clone_repo_exists_already() {
 
     // Try to clone the repository again.
     // THIS SHOULD PANIC
-    let result = Dotbak::clone_repo(
-        repo_dir,
-        Url::from_bytes("https://github.com/cogsandsquigs/dotbak".into()).unwrap(),
-    );
+    let result = Dotbak::clone_repo(repo_dir, "https://github.com/cogsandsquigs/dotbak");
 
     // Check if the result is an error.
     assert!(result.is_err());
 
-    let err = result.unwrap_err();
-
-    println!("{}", err);
-
     // Check that it is a git clone error.
     assert!(matches!(
-        err,
-        DotbakError::Git {
+        result,
+        Err(DotbakError::Git {
             source: GitError::Clone { .. }
-        }
+        })
     ));
 }
 

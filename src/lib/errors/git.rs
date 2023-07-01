@@ -8,39 +8,25 @@ use snafu::Snafu;
 #[snafu(visibility(pub(crate)))]
 pub enum GitError {
     /// There was an error initializing the git repository.
-    #[snafu(display("Error initializing the git repository: {}", source))]
+    #[snafu(display("Error initializing git repository{}: {}", url.as_ref().map(|url| format!(" '{}'", url)).unwrap_or("".into()), source))]
     #[diagnostic(code(dotbak::error::git::init))]
-    Init { source: gix::init::Error },
+    Init {
+        /// The URL of the repository. Optional because it may not be set.
+        url: Option<String>,
+
+        /// The source git error.
+        source: git2::Error,
+    },
 
     /// There was an error cloning the git repository.
-    #[snafu(display("Error cloning git repository '{}': {}", url.to_bstring(), source))]
+    #[snafu(display("Error cloning git repository '{}': {}", url, source))]
     #[diagnostic(code(dotbak::error::git::clone))]
     Clone {
-        source: gix::clone::Error,
-        url: gix::url::Url,
-    },
+        /// The URL of the repository. Optional because it may not be set.
+        url: String,
 
-    /// There was an error fetching the git repository.
-    #[snafu(display("Error fetching '{}': {}", url.to_bstring(), source))]
-    #[diagnostic(code(dotbak::error::git::fetch))]
-    Fetch {
-        source: gix::clone::fetch::Error,
-        url: gix::url::Url,
-    },
-
-    /// There was an error with the main worktree.
-    #[snafu(display("Error with the main worktree: {}", source))]
-    #[diagnostic(code(dotbak::error::git::worktree))]
-    Worktree {
-        source: gix::clone::checkout::main_worktree::Error,
-    },
-
-    /// There was an error finding the remote.
-    #[snafu(display("Error finding the remote '{}': {}", url.to_bstring(), source))]
-    #[diagnostic(code(dotbak::error::git::find))]
-    Find {
-        source: gix::remote::find::existing::Error,
-        url: gix::url::Url,
+        /// The source git error.
+        source: git2::Error,
     },
 }
 

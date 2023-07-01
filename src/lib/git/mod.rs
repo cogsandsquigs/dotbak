@@ -105,27 +105,15 @@ impl Dotbak {
 
 /// Credentials callback for git2, so we can use SSH keys/clone private repos.
 pub fn git_credentials_callback(
-    _user: &str,
-    _user_from_url: Option<&str>,
-    _cred: git2::CredentialType,
+    user: &str,
+    user_from_url: Option<&str>,
+    cred: git2::CredentialType,
 ) -> std::result::Result<git2::Cred, git2::Error> {
-    let user = _user_from_url.unwrap_or("git");
+    let user = user_from_url.unwrap_or(user);
 
-    if _cred.contains(git2::CredentialType::USERNAME) {
-        return git2::Cred::username(user);
-    }
-
-    match env::var("GPM_SSH_KEY") {
-        Ok(k) => {
-            dbg!(
-                "authenticate with user {} and private key located in {}",
-                user,
-                &k
-            );
-            git2::Cred::ssh_key(user, None, std::path::Path::new(&k), None)
-        }
-        _ => Err(git2::Error::from_str(
-            "unable to get private key from GPM_SSH_KEY",
-        )),
+    if cred.contains(git2::CredentialType::USERNAME) {
+        git2::Cred::username(user)
+    } else {
+        git2::Cred::ssh_key_from_agent(user)
     }
 }

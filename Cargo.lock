@@ -261,8 +261,16 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 name = "dotbak"
 version = "0.0.0"
 dependencies = [
- "assert_fs",
  "clap",
+ "dotbak-core",
+ "miette",
+]
+
+[[package]]
+name = "dotbak-core"
+version = "0.0.0"
+dependencies = [
+ "assert_fs",
  "dirs",
  "git2",
  "glob",

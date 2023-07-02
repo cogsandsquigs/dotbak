@@ -138,7 +138,7 @@ impl Dotbak {
 }
 
 /// Credentials callback for git2, so we can use SSH keys/clone private repos.
-pub fn git_credentials_callback(
+fn git_credentials_callback(
     user: &str,
     user_from_url: Option<&str>,
     cred: git2::CredentialType,

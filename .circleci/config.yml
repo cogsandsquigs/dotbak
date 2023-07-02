@@ -30,13 +30,25 @@ jobs:
         # parallelism: 4
 
         steps:
+            # Checkout the code from GitHub
             - checkout
+
+            # Restore cached dependencies
+            - restore_cache:
+                  key: dotbak-build-cache-branch-{{ .Branch }}
+
+            # Test the code
             - run:
                   name: "Test dotbak"
                   # TODO: parallelize tests
                   command: |
                       cargo test
 
+            # Save buildfiles and dependencies to cache
+            - save_cache:
+                  key: dotbak-build-cache-branch-{{ .Branch }}
+                  paths:
+                      - target
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:

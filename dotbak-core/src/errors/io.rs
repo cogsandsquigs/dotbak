@@ -7,6 +7,11 @@ use std::{io, path::PathBuf};
 #[derive(Debug, Snafu, Diagnostic)]
 #[snafu(visibility(pub(crate)))]
 pub enum IoError {
+    /// A file or folder does not exist.
+    #[snafu(display("File or folder '{}' does not exist", path.display()))]
+    #[diagnostic(code(dotbak::error::io::not_found))]
+    NotFound { path: PathBuf },
+
     /// A reading error: `std::io::Error`.
     #[snafu(display("Error reading from file '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::read))]

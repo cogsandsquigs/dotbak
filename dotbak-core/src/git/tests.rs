@@ -85,6 +85,55 @@ fn test_init_repo_path_exists_already() {
     ));
 }
 
+/// Test if we can load a pre-existing repository.
+#[test]
+fn test_load_repo_path_exists() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path();
+
+    // Initialize the repository.
+    let _repo = Dotbak::init_repo(repo_dir).unwrap();
+
+    // Check if the repository exists.
+    assert!(repo_exists(repo_dir));
+
+    // Load the repository.
+    let result = Dotbak::load_repo(repo_dir);
+
+    // Check if the result is ok.
+    assert!(result.is_ok());
+
+    // Check if the repository exists.
+    assert!(repo_exists(repo_dir));
+}
+
+/// Test if we can load a pre-existing repository that doesn't exist.
+#[test]
+fn test_load_repo_path_nonexistent() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path().join("some/sub/folders");
+
+    // Load the repository.
+    let result = Dotbak::load_repo(&repo_dir);
+
+    // Check if the result is an error.
+    assert!(result.is_err());
+
+    // Check that it is an IO error.
+    assert!(matches!(
+        result,
+        Err(DotbakError::Io {
+            source: IoError::NotFound { .. }
+        })
+    ));
+}
+
 /// Test if we can clone a remote repository into a given path.
 #[test]
 fn test_clone_repo_path_exists() {

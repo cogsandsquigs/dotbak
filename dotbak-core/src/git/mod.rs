@@ -3,14 +3,14 @@ mod tests;
 use crate::{
     errors::{
         git::{CloneSnafu, InitSnafu},
-        io::{CreateSnafu, DeleteSnafu},
+        io::{CreateSnafu, DeleteSnafu, IoError},
         Result,
     },
     Dotbak,
 };
 use git2::{build::RepoBuilder, Repository, RepositoryInitOptions};
 use snafu::ResultExt;
-use std::{env, path::Path};
+use std::path::Path;
 
 /// Public API for Dotbak.
 impl Dotbak {
@@ -37,7 +37,38 @@ impl Dotbak {
         opts.no_reinit(true);
 
         // Get the main repository object.
-        let repo = Repository::init_opts(path, &opts).context(InitSnafu { url: None })?;
+        let repo = Repository::init_opts(path, &opts).context(InitSnafu {
+            path: path.to_path_buf(),
+            url: None,
+        })?;
+
+        Ok(repo)
+    }
+
+    /// Loads a pre-existing repository from a local location. It will return an error if the repository
+    /// is not initialized or is not there.
+    ///
+    /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
+    /// directory does not exist, it will return an error.
+    pub fn load_repo<P>(path: P) -> Result<Repository>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+
+        // Check if the directory exists.
+        if !path.exists() {
+            return Err(IoError::NotFound {
+                path: path.to_path_buf(),
+            }
+            .into());
+        }
+
+        // Get the main repository object.
+        let repo = Repository::open(path).context(InitSnafu {
+            path: path.to_path_buf(),
+            url: None,
+        })?;
 
         Ok(repo)
     }
@@ -79,7 +110,10 @@ impl Dotbak {
                 fo
             })
             .clone(&url, path)
-            .context(CloneSnafu { url })?;
+            .context(CloneSnafu {
+                path: path.to_path_buf(),
+                url,
+            })?;
 
         Ok(repo)
     }

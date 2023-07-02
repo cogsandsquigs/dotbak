@@ -24,7 +24,7 @@ impl Dotbak {
         let config_path = config_path()?;
 
         // Try to load the configuration file.
-        match Config::load_config(&config_path) {
+        match Config::load_config(config_path) {
             // If the configuration file exists, load it.
             // TODO: log that the configuration file was loaded, not created.
             Ok(config) => Ok(Dotbak { config }),
@@ -34,7 +34,7 @@ impl Dotbak {
             Err(DotbakError::Config {
                 source: ConfigError::ConfigNotFound { path },
             }) => {
-                let config = Config::create_config(&path)?;
+                let config = Config::create_config(path)?;
 
                 Ok(Dotbak { config })
             }

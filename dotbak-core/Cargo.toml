@@ -8,19 +8,19 @@
 
 [dependencies]
 	# Configuration serialization/deserialization
-	serde = { version = "1", features = ["derive"] }
-	toml  = "0.7"
+	serde = { version = "~1", features = ["derive"] }
+	toml  = "~0.7"
 
 	# Error handling
-	miette = "5"   # For pretty errors
-	snafu  = "0.7" # For error handling
+	miette = "5"    # For pretty errors
+	snafu  = "~0.7" # For error handling
 
 	# Filesystem
-	dirs = "5"   # Getting the user's home directory
-	glob = "0.3" # For globbing files/directories
+	dirs = "~5"   # Getting the user's home directory
+	glob = "~0.3" # For globbing files/directories
 
 	# Git
-	git2 = { version = "0.17" }
+	git2 = { version = "~0.17" }
 
 	# Misc.
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.

@@ -20,10 +20,10 @@
 
 [dependencies]
 	# CLI parsing
-	clap = { version = "4", features = ["derive"] }
+	clap = { version = "~4", features = ["derive"] }
 
 	# Error handling
-	miette = { version = "5", features = ["fancy"] } # For pretty errors
+	miette = { version = "~5", features = ["fancy"] } # For pretty errors
 
 	# Dotbak core
 	dotbak-core = { path = "dotbak-core" }

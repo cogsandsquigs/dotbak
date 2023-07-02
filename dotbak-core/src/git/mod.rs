@@ -12,7 +12,7 @@ use git2::{build::RepoBuilder, Repository, RepositoryInitOptions};
 use snafu::ResultExt;
 use std::path::Path;
 
-/// Public API for Dotbak.
+/// Public git API for `Dotbak`.
 impl Dotbak {
     /// Initialize a new git repository. It will return an error if the repository is already initialized.
     ///

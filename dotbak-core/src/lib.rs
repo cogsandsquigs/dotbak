@@ -20,7 +20,7 @@ pub struct Dotbak {
     repo: Repository,
 }
 
-/// Public API for the program.
+/// Public API for `Dotbak`.
 impl Dotbak {
     /// Create a new instance of the program. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
@@ -35,7 +35,7 @@ impl Dotbak {
     }
 }
 
-/// Private API for Dotbak.
+/// Private API for `Dotbak`.
 impl Dotbak {
     /// Initialize a new instance of the program, loading the configuration file from `<dir>/config.toml` and the
     /// repository from `<dir>/dotfiles`.

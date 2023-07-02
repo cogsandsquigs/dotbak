@@ -35,7 +35,7 @@ jobs:
 
             # Restore cached dependencies
             - restore_cache:
-                  key: dotbak-build-cache-branch-{{ .Branch }}
+                  key: dotbak-build-cache-branch-{{ .Branch }}-{{ checksum "Cargo.lock" }}
 
             # Test the code
             - run:
@@ -46,7 +46,7 @@ jobs:
 
             # Save buildfiles and dependencies to cache
             - save_cache:
-                  key: dotbak-build-cache-branch-{{ .Branch }}
+                  key: dotbak-build-cache-branch-{{ .Branch }}-{{ checksum "Cargo.lock" }}
                   paths:
                       - target
 # Invoke jobs via workflows

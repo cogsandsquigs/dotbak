@@ -120,7 +120,7 @@ fn test_load_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Load the repository.
-    let result = Dotbak::load_repo(&repo_dir);
+    let result = Dotbak::load_repo(repo_dir);
 
     // Check if the result is an error.
     assert!(result.is_err());

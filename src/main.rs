@@ -2,12 +2,12 @@ mod cli;
 
 use clap::Parser;
 use cli::Cli;
-use dotbak_core::{config::Config, Dotbak};
+use dotbak_core::Dotbak;
 use miette::Result;
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
-    let dotbak = Dotbak::init()?;
+    let _cli = Cli::parse();
+    let _dotbak = Dotbak::init()?;
 
     Ok(())
 }

@@ -1,13 +1,12 @@
-use crate::errors::DotbakError;
-
 use super::errors::Result;
+use crate::errors::DotbakError;
 use std::path::PathBuf;
 
 /// The name of the configuration file.
 pub const CONFIG_FILE_NAME: &str = "config.toml";
 
 /// The name of the git repository folder.
-pub const REPO_FOLDER_NAME: &str = "repo";
+pub const REPO_FOLDER_NAME: &str = "dotfiles";
 
 // lazy_static! {
 //     /// The location of the configuration file.

@@ -8,3 +8,7 @@ Manage and backup dotfiles with ease!
 ## Configuration
 
 Configuration for `dotbak` is stored in `$HOME/.dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.
+
+## Dotfile Management
+
+Dotfiles are symlinked and stored in `$HOME/.dotbak/dotfiles`. This directory is created automatically when `dotbak init` is run for the first time. `dotbak` manages a git reposiotry in this directory, and all dotfiles are stored in this repository. This repository is automatically pushed to the remote repository specified in the configuration file.

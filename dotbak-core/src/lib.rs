@@ -1,7 +1,7 @@
 pub mod config;
 pub mod errors;
 pub mod git;
-pub mod locations;
+pub(crate) mod locations;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};

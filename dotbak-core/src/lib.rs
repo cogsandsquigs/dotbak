@@ -65,7 +65,7 @@ impl Dotbak {
         };
 
         // Try to load the repository.
-        let repo = GitRepo::init_repo(&repo_path)?;
+        let repo = GitRepo::init_repo(repo_path)?;
 
         Ok(Dotbak { config, repo })
     }
@@ -83,7 +83,7 @@ impl Dotbak {
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
-        let repo = GitRepo::load_repo(&repo_path)?;
+        let repo = GitRepo::load_repo(repo_path)?;
 
         Ok(Dotbak { config, repo })
     }

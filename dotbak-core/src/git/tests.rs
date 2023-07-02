@@ -203,7 +203,7 @@ fn test_delete_repo() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let mut repo = GitRepo::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);

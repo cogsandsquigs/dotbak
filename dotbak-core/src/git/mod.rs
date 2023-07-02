@@ -18,7 +18,7 @@ use std::{
 /// A wrapper structure around git2's `Repository` object.
 pub struct GitRepo {
     /// The repository path for `dotbak`.
-    pub path: PathBuf,
+    path: PathBuf,
 
     /// The git2 `Repository` object.
     repo: Repository,
@@ -148,6 +148,11 @@ impl GitRepo {
         fs::remove_dir_all(&self.path).context(DeleteSnafu { path: self.path })?;
 
         Ok(())
+    }
+
+    /// Gets the path at which the repository is located.
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
 

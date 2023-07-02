@@ -35,7 +35,7 @@ pub struct Config {
     /// The exclusion patterns for files to backup. This is a list of glob patterns to match
     /// against the files in the home directory. These are all relative to the home directory.
     /// When both include and exclude patterns match a file, the exclude pattern takes precedence.
-    /// The default value is `[".dotbak/repo"]`, which is the configuration file itself.
+    /// The default value is `[".dotbak/dotfiles"]`, which is the dotfile repository.
     #[serde(default = "Config::default_exclude")]
     pub exclude: Vec<PathBuf>,
 }

@@ -2,10 +2,9 @@ pub mod config;
 pub mod errors;
 pub mod git;
 pub(crate) mod locations;
-mod tests;
-
 #[cfg(test)]
 pub(crate) mod test_util;
+mod tests;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};

@@ -57,7 +57,7 @@ fn test_init_repo_path_nonexistent() {
 
 /// Test if we fail when initing a repo in a repository that already exists.
 #[test]
-fn test_init_repo_path_exists_already() {
+fn test_init_repo_exists_already() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 

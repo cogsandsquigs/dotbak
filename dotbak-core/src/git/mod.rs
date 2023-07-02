@@ -1,25 +1,37 @@
 mod tests;
 
-use crate::{
-    errors::{
-        git::{CloneSnafu, InitSnafu},
-        io::{CreateSnafu, DeleteSnafu, IoError},
-        Result,
-    },
-    Dotbak,
+use crate::errors::{
+    git::{CloneSnafu, InitSnafu},
+    io::{CreateSnafu, DeleteSnafu, IoError},
+    Result,
 };
-use git2::{build::RepoBuilder, Repository, RepositoryInitOptions};
+use git2::{
+    build::RepoBuilder, Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository,
+    RepositoryInitOptions,
+};
 use snafu::ResultExt;
-use std::path::Path;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
+/// A wrapper structure around git2's `Repository` object.
+pub struct GitRepo {
+    /// The repository path for `dotbak`.
+    pub path: PathBuf,
+
+    /// The git2 `Repository` object.
+    repo: Repository,
+}
 
 /// Public git API for `Dotbak`.
-impl Dotbak {
+impl GitRepo {
     /// Initialize a new git repository. It will return an error if the repository is already initialized.
     ///
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
     /// directory does not exist, it will be created.
     /// TODO: implement logging and such.
-    pub fn init_repo<P>(path: P) -> Result<Repository>
+    pub fn init_repo<P>(path: P) -> Result<GitRepo>
     where
         P: AsRef<Path>,
     {
@@ -27,7 +39,7 @@ impl Dotbak {
 
         // Create the directory if it does not exist.
         if !path.exists() {
-            std::fs::create_dir_all(path).context(CreateSnafu {
+            fs::create_dir_all(path).context(CreateSnafu {
                 path: path.to_path_buf(),
             })?;
         }
@@ -42,7 +54,10 @@ impl Dotbak {
             url: None,
         })?;
 
-        Ok(repo)
+        Ok(GitRepo {
+            path: path.to_path_buf(),
+            repo,
+        })
     }
 
     /// Loads a pre-existing repository from a local location. It will return an error if the repository
@@ -50,7 +65,7 @@ impl Dotbak {
     ///
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
     /// directory does not exist, it will return an error.
-    pub fn load_repo<P>(path: P) -> Result<Repository>
+    pub fn load_repo<P>(path: P) -> Result<GitRepo>
     where
         P: AsRef<Path>,
     {
@@ -70,7 +85,10 @@ impl Dotbak {
             url: None,
         })?;
 
-        Ok(repo)
+        Ok(GitRepo {
+            path: path.to_path_buf(),
+            repo,
+        })
     }
 
     /// Clones a pre-existing repository from a remote location. It will return an error if the repository
@@ -81,7 +99,7 @@ impl Dotbak {
     ///
     /// `url` is the URL to the remote repository.
     /// TODO: implement logging and such.
-    pub fn clone_repo<P, S>(path: P, url: S) -> Result<Repository>
+    pub fn clone_repo<P, S>(path: P, url: S) -> Result<GitRepo>
     where
         P: AsRef<Path>,
         S: ToString,
@@ -91,7 +109,7 @@ impl Dotbak {
 
         // Create the directory if it does not exist.
         if !path.exists() {
-            std::fs::create_dir_all(path).context(CreateSnafu {
+            fs::create_dir_all(path).context(CreateSnafu {
                 path: path.to_path_buf(),
             })?;
         }
@@ -101,9 +119,9 @@ impl Dotbak {
 
         let repo = RepoBuilder::new()
             .fetch_options({
-                let mut fo = git2::FetchOptions::new();
+                let mut fo = FetchOptions::new();
                 fo.remote_callbacks({
-                    let mut cb = git2::RemoteCallbacks::new();
+                    let mut cb = RemoteCallbacks::new();
                     cb.credentials(git_credentials_callback);
                     cb
                 });
@@ -115,23 +133,19 @@ impl Dotbak {
                 url,
             })?;
 
-        Ok(repo)
+        Ok(GitRepo {
+            path: path.to_path_buf(),
+            repo,
+        })
     }
 
     /// Deletes the git repository. It will return an error if the repository is not initialized or is not
     /// there. Will not return an error if the repository is not empty.
     /// TODO: implement logging and such.
     /// TODO: Move symlinked files to their original location.
-    pub fn delete_repo<P>(path: P) -> Result<()>
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-
+    pub fn delete_repo(self) -> Result<()> {
         // Delete the repository using `fs::remove_dir_all`.
-        std::fs::remove_dir_all(path).context(DeleteSnafu {
-            path: path.to_path_buf(),
-        })?;
+        fs::remove_dir_all(&self.path).context(DeleteSnafu { path: self.path })?;
 
         Ok(())
     }
@@ -141,13 +155,13 @@ impl Dotbak {
 fn git_credentials_callback(
     user: &str,
     user_from_url: Option<&str>,
-    cred: git2::CredentialType,
-) -> std::result::Result<git2::Cred, git2::Error> {
+    cred: CredentialType,
+) -> std::result::Result<Cred, git2::Error> {
     let user = user_from_url.unwrap_or(user);
 
-    if cred.contains(git2::CredentialType::USERNAME) {
-        git2::Cred::username(user)
+    if cred.contains(CredentialType::USERNAME) {
+        Cred::username(user)
     } else {
-        git2::Cred::ssh_key_from_agent(user)
+        Cred::ssh_key_from_agent(user)
     }
 }

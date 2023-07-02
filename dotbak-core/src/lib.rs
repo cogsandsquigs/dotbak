@@ -8,27 +8,27 @@ mod tests;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};
-use git2::Repository;
+use git::GitRepo;
 use locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
 
-/// The main structure to manage the program's actions and such.
+/// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
-    /// The configuration for the program.
+    /// The configuration for `dotbak`.
     config: Config,
 
-    /// The repository for the program.
-    repo: Repository,
+    /// The repository for `dotbak`.
+    repo: GitRepo,
 }
 
 /// Public API for `Dotbak`.
 impl Dotbak {
-    /// Create a new instance of the program. If the configuration file does not exist, it will be created.
+    /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
         Self::init_from_dir(locations::dotbak_dir()?)
     }
 
-    /// Creates a new instance of the program. If the configuration file does not exist, an error will be returned.
+    /// Creates a new instance of `dotbak`. If the configuration file does not exist, an error will be returned.
     /// If it does exist, it will be loaded.
     pub fn load() -> Result<Self> {
         Self::load_from_dir(locations::dotbak_dir()?)
@@ -37,7 +37,7 @@ impl Dotbak {
 
 /// Private API for `Dotbak`.
 impl Dotbak {
-    /// Initialize a new instance of the program, loading the configuration file from `<dir>/config.toml` and the
+    /// Initialize a new instance of `dotbak`, loading the configuration file from `<dir>/config.toml` and the
     /// repository from `<dir>/dotfiles`.
     fn init_from_dir<P>(dir: P) -> Result<Self>
     where
@@ -65,12 +65,12 @@ impl Dotbak {
         };
 
         // Try to load the repository.
-        let repo = Self::init_repo(repo_path)?;
+        let repo = GitRepo::init_repo(&repo_path)?;
 
         Ok(Dotbak { config, repo })
     }
 
-    /// Load an instance of the program, loading the configuration file from `<dir>/config.toml` and the
+    /// Load an instance of `dotbak`, loading the configuration file from `<dir>/config.toml` and the
     /// repository from `<dir>/dotfiles`.
     fn load_from_dir<P>(dir: P) -> Result<Self>
     where
@@ -83,7 +83,7 @@ impl Dotbak {
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
-        let repo = Self::load_repo(repo_path)?;
+        let repo = GitRepo::load_repo(&repo_path)?;
 
         Ok(Dotbak { config, repo })
     }

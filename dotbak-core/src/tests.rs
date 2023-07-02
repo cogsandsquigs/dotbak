@@ -11,6 +11,7 @@ fn test_init_dotbak() {
     let result = Dotbak::init_from_dir(dotbak_dir);
 
     assert!(result.is_ok());
+    assert_eq!(result.unwrap().repo.path, dotbak_dir.join(REPO_FOLDER_NAME));
     assert!(dotbak_dir.join(CONFIG_FILE_NAME).exists());
     repo_exists!(dotbak_dir.join(REPO_FOLDER_NAME));
 }
@@ -23,6 +24,7 @@ fn test_init_dotbak_no_dir() {
     let result = Dotbak::init_from_dir(&dotbak_dir);
 
     assert!(result.is_ok());
+    assert_eq!(result.unwrap().repo.path, dotbak_dir.join(REPO_FOLDER_NAME));
     assert!(dotbak_dir.join(CONFIG_FILE_NAME).exists());
     repo_exists!(dotbak_dir.join(REPO_FOLDER_NAME));
 }
@@ -36,12 +38,14 @@ fn test_load_dotbak() {
     let result = Dotbak::init_from_dir(dotbak_dir);
 
     assert!(result.is_ok());
+    assert_eq!(result.unwrap().repo.path, dotbak_dir.join(REPO_FOLDER_NAME));
     assert!(dotbak_dir.join(CONFIG_FILE_NAME).exists());
     repo_exists!(dotbak_dir.join(REPO_FOLDER_NAME));
 
     let result = Dotbak::load_from_dir(dotbak_dir);
 
     assert!(result.is_ok());
+    assert_eq!(result.unwrap().repo.path, dotbak_dir.join(REPO_FOLDER_NAME));
     assert!(dotbak_dir.join(CONFIG_FILE_NAME).exists());
     repo_exists!(dotbak_dir.join(REPO_FOLDER_NAME));
 }

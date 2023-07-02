@@ -2,7 +2,8 @@
 
 use crate::{
     errors::{git::GitError, io::IoError, DotbakError},
-    repo_exists, repo_not_exists, Dotbak,
+    git::GitRepo,
+    repo_exists, repo_not_exists,
 };
 use assert_fs::TempDir;
 
@@ -19,12 +20,13 @@ fn test_init_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init_repo(repo_dir).unwrap();
 
     println!("{:?}", repo_dir);
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
 }
 
 /// Test if we can create a new repository at a given path that doesn't exist.
@@ -37,10 +39,11 @@ fn test_init_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let _repo = Dotbak::init_repo(&repo_dir).unwrap();
+    let repo = GitRepo::init_repo(&repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
+    assert_eq!(repo.path, repo_dir);
 }
 
 /// Test if we fail when initing a repo in a repository that already exists.
@@ -53,13 +56,14 @@ fn test_init_repo_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
 
     // Try to initialize the repository again.
-    let result = Dotbak::init_repo(repo_dir);
+    let result = GitRepo::init_repo(repo_dir);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -83,19 +87,20 @@ fn test_load_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
 
     // Load the repository.
-    let result = Dotbak::load_repo(repo_dir);
+    let result = GitRepo::load_repo(repo_dir);
 
     // Check if the result is ok.
     assert!(result.is_ok());
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
 }
 
 /// Test if we can load a pre-existing repository that doesn't exist.
@@ -108,7 +113,7 @@ fn test_load_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Load the repository.
-    let result = Dotbak::load_repo(repo_dir);
+    let result = GitRepo::load_repo(repo_dir);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -132,13 +137,11 @@ fn test_clone_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::clone_repo(repo_dir, TEST_GIT_REPO_URL).unwrap();
-
-    // Check if the repository exists.
-    assert!(repo_dir.exists());
+    let repo = GitRepo::clone_repo(repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
 }
 
 /// Test if we can clone a remote repository into a given path that doesn't exist.
@@ -151,10 +154,11 @@ fn test_clone_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let _repo = Dotbak::clone_repo(&repo_dir, TEST_GIT_REPO_URL).unwrap();
+    let repo = GitRepo::clone_repo(&repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
+    assert_eq!(repo.path, repo_dir);
 }
 
 /// Test if we fail when cloning a repo into a repository that already exists.
@@ -167,14 +171,15 @@ fn test_clone_repo_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::init_repo(repo_dir);
+    let repo = GitRepo::init_repo(repo_dir);
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
+    assert_eq!(repo.unwrap().path, repo_dir);
 
     // Try to clone the repository again.
     // THIS SHOULD PANIC
-    let result = Dotbak::clone_repo(repo_dir, TEST_GIT_REPO_URL);
+    let result = GitRepo::clone_repo(repo_dir, TEST_GIT_REPO_URL);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -198,42 +203,15 @@ fn test_delete_repo() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let _repo = Dotbak::init_repo(repo_dir).unwrap();
+    let mut repo = GitRepo::init_repo(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
 
     // Delete the repository.
-    Dotbak::delete_repo(repo_dir).unwrap();
+    repo.delete_repo().unwrap();
 
     // Check if the repository exists.
     repo_not_exists!(repo_dir);
-}
-
-/// Test the deletion of a repository that doesn't exist.
-#[test]
-fn test_delete_repo_nonexistent() {
-    // Create a temporary directory.
-    let tmp_dir = TempDir::new().unwrap();
-
-    // Get the path to the repo directory.
-    let repo_dir = tmp_dir.path().join("some/sub/folders");
-
-    // Delete the repository.
-    let result = Dotbak::delete_repo(repo_dir);
-
-    // Check if the result is an error.
-    assert!(result.is_err());
-
-    let err = result.unwrap_err();
-
-    println!("{}", err);
-
-    // Check that it is an IO error.
-    assert!(matches!(
-        err,
-        DotbakError::Io {
-            source: IoError::Delete { .. }
-        }
-    ));
 }

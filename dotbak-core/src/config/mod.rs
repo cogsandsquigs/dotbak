@@ -2,7 +2,7 @@ mod tests;
 
 use crate::errors::{
     config::ConfigError,
-    io::{ReadSnafu, WriteSnafu},
+    io::{CreateSnafu, ReadSnafu, WriteSnafu},
     Result,
 };
 use crate::locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
@@ -115,10 +115,21 @@ impl Config {
                 path: path.to_path_buf(),
             }
             .into());
+        } else {
+            // Create the file if it doesn't exist.
+            fs::create_dir_all(path.parent().unwrap()).context(CreateSnafu {
+                path: path.to_path_buf(),
+            })?;
+
+            // Create the file.
+            fs::File::create(path).context(CreateSnafu {
+                path: path.to_path_buf(),
+            })?;
         }
 
         let mut config = Config::default();
         let config_str = toml::to_string(&config)?;
+
         fs::write(path, config_str).context(WriteSnafu {
             path: path.to_path_buf(),
         })?;

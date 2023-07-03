@@ -2,16 +2,17 @@
 
 ```mermaid
 flowchart LR
-    user -- CLI --> dotbak["dotbak"]
-    conf["Configuration"] -- Read config --> dotbak
-    dotbak -- Reconfigure --> conf
-    dotbak -- Manage dotfiles/git --> repo["Dotfile git repo"]
-    user -- Update dotfiles via symlink --> repo
+    user -- dotbak CLI --> dotbak["dotbak"]
+    user -- Text editor --> dotfiles
+    user -- Text editor --> conf
+    dotbak <-- fs::read/write --> conf["Configuration"]
+    dotbak -- libgit2/raw git CLI --> repo["Dotfile git repo"]
+    dotfiles["Dotfiles"] <-- Symlink --> repo
 ```
 
 ## Sequence diagram
 
-````mermaid
+```mermaid
 sequenceDiagram
     participant user as User
     participant dotbak as Dotbak
@@ -31,16 +32,22 @@ sequenceDiagram
     repo ->> dfiles: Symlink dotfiles out of repo
     dotbak ->> user: Report errors/success
 
-    user ->> dotbak: dotbak sync
-    dotbak ->> repo: git commit
+    user ->> dotbak: dotbak pull
     dotbak ->> repo: git pull
     dotbak ->> user: Report git conflicts/etc.
+
+    user ->> dotbak: dotbak push
+    dotbak ->> repo: git commit
     dotbak ->> repo: git push
+    dotbak ->> user: Report errors/success
+
+    user ->> dotbak: dotbak git <opts...>
+    dotbak ->> repo: git <opts...>
     dotbak ->> user: Report errors/success
 
     user ->> dotbak: dotbak deinit
     dotbak ->> repo: Move files to original locations
     dotbak ->> conf: Delete configuration
+    dotbak ->> repo: Delete repo
     dotbak ->> user: Report errors/success
 ```
-````

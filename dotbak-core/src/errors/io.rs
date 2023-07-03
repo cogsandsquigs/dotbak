@@ -31,4 +31,35 @@ pub enum IoError {
     #[snafu(display("Error deleting file '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::delete))]
     Delete { source: io::Error, path: PathBuf },
+
+    /// An arbitrary command could not be run.
+    #[snafu(display("Error running command '{} {}': {}", command, args.join(" "), source))]
+    #[diagnostic(code(dotbak::error::git::arbitrary_command))]
+    CommandIO {
+        /// The command that was run.
+        command: String,
+
+        /// The arguments to the command.
+        args: Vec<String>,
+
+        /// The source io error.
+        source: io::Error,
+    },
+
+    /// An arbitrary command was run and returned an error.
+    #[snafu(display("Error running command '{} {}':\nSTDOUT:\n{}\nSTDERR:\n{}", command, args.join(" "), stdout, stderr))]
+    #[diagnostic(code(dotbak::error::git::arbitrary_command))]
+    CommandRun {
+        /// The command that was run.
+        command: String,
+
+        /// The arguments to the command.
+        args: Vec<String>,
+
+        /// The stdout from the command.
+        stdout: String,
+
+        /// The stderr from the command.
+        stderr: String,
+    },
 }

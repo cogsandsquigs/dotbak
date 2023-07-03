@@ -5,7 +5,7 @@ use crate::{
     git::GitRepo,
     repo_exists, repo_not_exists,
 };
-use assert_fs::{assert, prelude::*, TempDir};
+use assert_fs::{prelude::*, TempDir};
 
 /// The repository URL for the test repository.
 const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld";
@@ -191,6 +191,44 @@ fn test_clone_exists_already() {
             source: GitError::Clone { .. }
         })
     ));
+}
+
+/// Test if we can run arbitrary commands in a repository.
+/// This just does `git add .` and `git commit -m "Test commit"`.
+#[test]
+fn test_arbitrary_command() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path();
+
+    // Initialize the repository.
+    let repo = GitRepo::init(repo_dir).unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+
+    // Create a file in the repository.
+    tmp_dir.child("test.txt").touch().unwrap();
+
+    // Run the arbitrary command.
+    repo.arbitrary_command(&["add", "."]).unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+    assert!(tmp_dir.child("test.txt").path().exists());
+
+    // Run the arbitrary command.
+    repo.arbitrary_command(&["commit", "-m", "Test commit"])
+        .unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+    assert!(tmp_dir.child("test.txt").path().exists());
 }
 
 /// Test if we can commit changes to a repository.

@@ -2,29 +2,30 @@ mod tests;
 
 use crate::errors::{
     git::{CloneSnafu, CommitSnafu, GitError, InitSnafu},
-    io::{CreateSnafu, DeleteSnafu, IoError},
+    io::{CommandIOSnafu, CreateSnafu, DeleteSnafu, IoError},
     Result,
 };
 use git2::{
-    build::RepoBuilder, Cred, CredentialType, ErrorCode, FetchOptions, IndexAddOption, Oid,
+    build::RepoBuilder, Commit, Cred, CredentialType, ErrorCode, FetchOptions, IndexAddOption, Oid,
     RemoteCallbacks, Repository, RepositoryInitOptions, Signature,
 };
 use snafu::ResultExt;
 use std::{
-    fs,
+    env, fs,
     path::{Path, PathBuf},
 };
 
 /// A wrapper structure around git2's `Repository` object.
 pub struct GitRepo {
-    /// The repository path for `dotbak`.
+    /// The repository path for `dotbak`. Note that this is not the `.git` directory, but the directory
+    /// containing the `.git` directory.
     path: PathBuf,
 
     /// The git2 `Repository` object.
     repo: Repository,
 }
 
-/// Public git API for `Dotbak`.
+/// Public git API for `GitRepo`.
 impl GitRepo {
     /// Initialize a new git repository. It will return an error if the repository is already initialized.
     ///
@@ -144,6 +145,34 @@ impl GitRepo {
         &self.path
     }
 
+    /// Runs an arbitrary `git` command. It will return an error if the repository is not initialized.
+    ///
+    /// `args` is a vector of arguments to pass to `git`.
+    pub fn arbitrary_command(&self, args: &[&str]) -> Result<()> {
+        // Run the command.
+        let output = std::process::Command::new("git")
+            .args(args)
+            .current_dir(&self.path)
+            .output()
+            .context(CommandIOSnafu {
+                command: "git".to_string(),
+                args: args.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            })?;
+
+        // Check if the command failed.
+        if !output.status.success() {
+            return Err(IoError::CommandRun {
+                command: "git".to_string(),
+                args: args.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            }
+            .into());
+        }
+
+        Ok(())
+    }
+
     /// Commits all changed files to the repository. It will return an error if the repository is not initialized.
     ///
     /// `message` is the commit message.
@@ -165,57 +194,10 @@ impl GitRepo {
         let tree_id = index.write_tree().context(CommitSnafu)?;
 
         // Get the parent.
-        let parents = {
-            // Get the HEAD.
-            let head = self.repo.head();
-
-            // We check if the HEAD exists. This is because in a newly initialized repository, there will be
-            // no HEAD.
-            match head {
-                // If the HEAD exists, get the parent commit.
-                Ok(head) => {
-                    // Get the commit.
-                    let parent = head.peel_to_commit().context(CommitSnafu)?;
-
-                    // Return the commit.
-                    vec![parent]
-                }
-
-                // If this is a newly initialized repository, there will be no HEAD. Thus,
-                // we return no parents.
-                Err(e) if e.code() == ErrorCode::UnbornBranch => {
-                    // Return an empty vector.
-                    vec![]
-                }
-
-                // If this is an actual error, return it.
-                Err(e) => return Err(GitError::Commit { source: e }.into()),
-            }
-        };
+        let parents = self.parents()?;
 
         // Get the signature.
-        let signature = match self.repo.signature() {
-            // If the signature exists, return it.
-            Ok(signature) => signature,
-
-            // If the signature doesn't exist, return a default signature. This is to get around
-            // a user not having a signature set up.
-            Err(e) if e.code() == ErrorCode::NotFound => {
-                // Get the username.
-                let username = whoami::username();
-
-                // Get the email.
-                let email = format!("{}@{}", username, whoami::hostname());
-
-                // Create the signature.
-                Signature::now(&username, &email).context(CommitSnafu)?
-            }
-
-            // If this is an actual error, return it.
-            Err(e) => return Err(GitError::Commit { source: e }.into()),
-        };
-
-        // self.repo.signature().context(CommitSnafu)?.to_owned();
+        let signature = self.signature()?;
 
         // Create the commit.
         let oid = self
@@ -243,6 +225,82 @@ impl GitRepo {
         fs::remove_dir_all(&self.path).context(DeleteSnafu { path: self.path })?;
 
         Ok(())
+    }
+}
+
+/// Private git API for `GitRepo`.
+impl GitRepo {
+    /// Gets the parents of the current HEAD. If there is no HEAD, it will return an empty vector.
+    fn parents(&self) -> Result<Vec<Commit<'_>>> {
+        // Get the HEAD.
+        let head = self.repo.head();
+
+        // We check if the HEAD exists. This is because in a newly initialized repository, there will be
+        // no HEAD.
+        match head {
+            // If the HEAD exists, get the parent commit.
+            Ok(head) => {
+                // Get the commit.
+                let parent = head.peel_to_commit().context(CommitSnafu)?;
+
+                // Return the commit.
+                Ok(vec![parent])
+            }
+
+            // If this is a newly initialized repository, there will be no HEAD. Thus,
+            // we return no parents.
+            Err(e) if e.code() == ErrorCode::UnbornBranch => {
+                // Return an empty vector.
+                Ok(vec![])
+            }
+
+            // If this is an actual error, return it.
+            Err(e) => Err(GitError::Commit { source: e }.into()),
+        }
+    }
+
+    /// Gets the signature for the current user.
+    fn signature(&self) -> Result<Signature<'_>> {
+        match self.repo.signature() {
+            // If the signature exists, return it.
+            Ok(signature) => Ok(signature),
+
+            // If the signature doesn't exist, return a default signature IF in CI environment. This
+            // is to get around not having a signature set up in the CI.
+            Err(e)
+                if e.code() == ErrorCode::NotFound
+                    && env::var("CI")
+                        // If the variable is not set, default to `""`.
+                        .unwrap_or_default()
+                        // Parse a bool from the variable.
+                        .parse()
+                        // If the variable is not a valid bool, default to `false`.
+                        .unwrap_or_default() =>
+            {
+                // Get the username.
+                let username = format!(
+                    "dotbak-ci-build-{}",
+                    env::var("CIRCLE_BUILD_NUM")
+                        .expect("CIRCLE_BRANCH should be set, as we are using CircleCI!")
+                );
+
+                // Get the email.
+                let email = format!(
+                    "{}@circleci-branch-{}",
+                    username,
+                    env::var("CIRCLE_BRANCH")
+                        .expect("CIRCLE_BRANCH should be set, as we are using CircleCI!")
+                );
+
+                // Create the signature.
+                let signature = Signature::now(&username, &email).context(CommitSnafu)?;
+
+                Ok(signature)
+            }
+
+            // If this is an actual error, return it.
+            Err(e) => Err(GitError::Commit { source: e }.into()),
+        }
     }
 }
 

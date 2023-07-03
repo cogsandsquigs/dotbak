@@ -41,4 +41,15 @@ pub enum GitError {
         /// The source git error.
         source: git2::Error,
     },
+
+    /// There was an error creating a remote for the repository.
+    #[snafu(display("Error creating git remote 'origin' to '{}': {}", url, source))]
+    #[diagnostic(code(dotbak::error::git::remote))]
+    Remote {
+        /// The url of the remote.
+        url: String,
+
+        /// The source git error.
+        source: git2::Error,
+    },
 }

@@ -72,7 +72,7 @@ impl Dotbak {
         };
 
         // Try to load the repository.
-        let repo = GitRepo::init(repo_path)?;
+        let repo = GitRepo::init(repo_path, None)?;
 
         Ok(Dotbak {
             home_dir: home_dir()?,

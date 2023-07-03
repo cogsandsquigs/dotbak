@@ -1,13 +1,13 @@
 mod tests;
 
 use crate::errors::{
-    git::{CloneSnafu, CommitSnafu, GitError, InitSnafu},
+    git::{CloneSnafu, CommitSnafu, GitError, InitSnafu, RemoteSnafu},
     io::{CommandIOSnafu, CreateSnafu, DeleteSnafu, IoError},
     Result,
 };
 use git2::{
     build::RepoBuilder, Commit, Cred, CredentialType, ErrorCode, FetchOptions, IndexAddOption, Oid,
-    RemoteCallbacks, Repository, RepositoryInitOptions, Signature,
+    PushOptions, RemoteCallbacks, Repository, RepositoryInitOptions, Signature,
 };
 use snafu::ResultExt;
 use std::{
@@ -32,7 +32,9 @@ impl GitRepo {
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
     /// directory does not exist, it will be created.
     /// TODO: implement logging and such.
-    pub fn init<P>(path: P) -> Result<GitRepo>
+    ///
+    /// `remote_url` is the URL to the remote repository. This will be set to the `origin` remote.
+    pub fn init<P>(path: P, remote_url: Option<String>) -> Result<GitRepo>
     where
         P: AsRef<Path>,
     {
@@ -47,7 +49,12 @@ impl GitRepo {
 
         // Set the options.
         let mut opts = RepositoryInitOptions::new();
+        // We don't want to reinitialize the repository if it already exists.
         opts.no_reinit(true);
+        // If we want to set the remote, we set it here.
+        if let Some(url) = remote_url {
+            opts.origin_url(&url);
+        }
 
         // Get the main repository object.
         let repo = Repository::init_opts(path, &opts).context(InitSnafu {
@@ -59,6 +66,24 @@ impl GitRepo {
             path: path.to_path_buf(),
             repo,
         })
+    }
+
+    /// Set the remote for the repository. It will return an error if the repository is not
+    /// initialized. The remote is named "origin".
+    ///
+    /// `url` is the URL to the remote repository.
+    pub fn set_remote<S>(&mut self, url: S) -> Result<()>
+    where
+        S: ToString,
+    {
+        let url = url.to_string();
+
+        // Set the remote.
+        self.repo
+            .remote_set_pushurl("origin", Some(&url))
+            .context(RemoteSnafu { url })?;
+
+        Ok(())
     }
 
     /// Loads a pre-existing repository from a local location. It will return an error if the repository
@@ -178,7 +203,7 @@ impl GitRepo {
     /// `message` is the commit message.
     ///
     /// Returns the commit's OID -- this is the commit's hash.
-    pub fn commit(&self, message: &str) -> Result<Oid> {
+    pub fn commit(&mut self, message: &str) -> Result<Oid> {
         // Get the index.
         let mut index = self.repo.index().context(CommitSnafu)?;
 
@@ -214,6 +239,28 @@ impl GitRepo {
             .context(CommitSnafu)?;
 
         Ok(oid)
+    }
+
+    /// Pushes all commits to the remote repository. It will return an error if the repository is not
+    /// initialized.
+    pub fn push(&mut self) -> Result<()> {
+        // Get the remote.
+        let mut remote = self.repo.find_remote("origin").context(CommitSnafu)?;
+
+        // Set the callbacks.
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.credentials(git_credentials_callback);
+
+        // Set the options.
+        let mut options = PushOptions::new();
+        options.remote_callbacks(callbacks);
+
+        // Push the remote.
+        remote
+            .push(&["refs/heads/main:refs/heads/main"], Some(&mut options))
+            .context(CommitSnafu)?;
+
+        Ok(())
     }
 
     /// Deletes the git repository. It will return an error if the repository is not initialized or is not

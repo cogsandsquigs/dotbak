@@ -1,7 +1,6 @@
 pub mod config;
 pub mod errors;
 pub mod git;
-#[cfg(test)]
 pub(crate) mod test_util;
 mod tests;
 
@@ -73,7 +72,7 @@ impl Dotbak {
         };
 
         // Try to load the repository.
-        let repo = GitRepo::init_repo(repo_path)?;
+        let repo = GitRepo::init(repo_path)?;
 
         Ok(Dotbak {
             home_dir: home_dir()?,
@@ -95,7 +94,7 @@ impl Dotbak {
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
-        let repo = GitRepo::load_repo(repo_path)?;
+        let repo = GitRepo::load(repo_path)?;
 
         Ok(Dotbak {
             home_dir: home_dir()?,

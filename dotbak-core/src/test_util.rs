@@ -1,13 +1,6 @@
-// /// Helper function to check if a repository exists at a path.
-// pub fn repo_exists<P>(path: P) -> bool
-// where
-//     P: AsRef<Path>,
-// {
-//     let path = path.as_ref();
+#![cfg(test)]
 
-//     path.exists() && path.join(".git").exists()
-// }
-
+/// Helper function to check if a repository exists at a path.
 #[macro_export]
 macro_rules! repo_exists {
     ($path:expr) => {
@@ -16,6 +9,7 @@ macro_rules! repo_exists {
     };
 }
 
+/// Helper function to check if a repository doesn't exist at a path.
 #[macro_export]
 macro_rules! repo_not_exists {
     ($path:expr) => {

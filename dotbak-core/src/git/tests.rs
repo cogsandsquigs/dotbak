@@ -5,14 +5,14 @@ use crate::{
     git::GitRepo,
     repo_exists, repo_not_exists,
 };
-use assert_fs::TempDir;
+use assert_fs::{assert, prelude::*, TempDir};
 
 /// The repository URL for the test repository.
 const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld";
 
 /// Test if we can create a new repository at a given path.
 #[test]
-fn test_init_repo_path_exists() {
+fn test_init_path_exists() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -20,7 +20,7 @@ fn test_init_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init(repo_dir).unwrap();
 
     println!("{:?}", repo_dir);
 
@@ -31,7 +31,7 @@ fn test_init_repo_path_exists() {
 
 /// Test if we can create a new repository at a given path that doesn't exist.
 #[test]
-fn test_init_repo_path_nonexistent() {
+fn test_init_path_nonexistent() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -39,7 +39,7 @@ fn test_init_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let repo = GitRepo::init_repo(&repo_dir).unwrap();
+    let repo = GitRepo::init(&repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
@@ -48,7 +48,7 @@ fn test_init_repo_path_nonexistent() {
 
 /// Test if we fail when initing a repo in a repository that already exists.
 #[test]
-fn test_init_repo_exists_already() {
+fn test_init_exists_already() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -56,14 +56,14 @@ fn test_init_repo_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
 
     // Try to initialize the repository again.
-    let result = GitRepo::init_repo(repo_dir);
+    let result = GitRepo::init(repo_dir);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -79,7 +79,7 @@ fn test_init_repo_exists_already() {
 
 /// Test if we can load a pre-existing repository.
 #[test]
-fn test_load_repo_path_exists() {
+fn test_load_path_exists() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -87,13 +87,13 @@ fn test_load_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
 
     // Load the repository.
-    let result = GitRepo::load_repo(repo_dir);
+    let result = GitRepo::load(repo_dir);
 
     // Check if the result is ok.
     assert!(result.is_ok());
@@ -105,7 +105,7 @@ fn test_load_repo_path_exists() {
 
 /// Test if we can load a pre-existing repository that doesn't exist.
 #[test]
-fn test_load_repo_path_nonexistent() {
+fn test_load_path_nonexistent() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -113,7 +113,7 @@ fn test_load_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Load the repository.
-    let result = GitRepo::load_repo(repo_dir);
+    let result = GitRepo::load(repo_dir);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -129,7 +129,7 @@ fn test_load_repo_path_nonexistent() {
 
 /// Test if we can clone a remote repository into a given path.
 #[test]
-fn test_clone_repo_path_exists() {
+fn test_clone_path_exists() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -137,7 +137,7 @@ fn test_clone_repo_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::clone_repo(repo_dir, TEST_GIT_REPO_URL).unwrap();
+    let repo = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -146,7 +146,7 @@ fn test_clone_repo_path_exists() {
 
 /// Test if we can clone a remote repository into a given path that doesn't exist.
 #[test]
-fn test_clone_repo_path_nonexistent() {
+fn test_clone_path_nonexistent() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -154,7 +154,7 @@ fn test_clone_repo_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let repo = GitRepo::clone_repo(&repo_dir, TEST_GIT_REPO_URL).unwrap();
+    let repo = GitRepo::clone(&repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
@@ -163,7 +163,7 @@ fn test_clone_repo_path_nonexistent() {
 
 /// Test if we fail when cloning a repo into a repository that already exists.
 #[test]
-fn test_clone_repo_exists_already() {
+fn test_clone_exists_already() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -171,7 +171,7 @@ fn test_clone_repo_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init_repo(repo_dir);
+    let repo = GitRepo::init(repo_dir);
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -179,7 +179,7 @@ fn test_clone_repo_exists_already() {
 
     // Try to clone the repository again.
     // THIS SHOULD PANIC
-    let result = GitRepo::clone_repo(repo_dir, TEST_GIT_REPO_URL);
+    let result = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -193,9 +193,9 @@ fn test_clone_repo_exists_already() {
     ));
 }
 
-/// Test the deletion of a repository.
+/// Test if we can commit changes to a repository.
 #[test]
-fn test_delete_repo() {
+fn test_commit() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -203,14 +203,54 @@ fn test_delete_repo() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init_repo(repo_dir).unwrap();
+    let repo = GitRepo::init(repo_dir).unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+
+    // Create a file in the repository.
+    tmp_dir.child("test.txt").touch().unwrap();
+
+    // Commit the changes.
+    repo.commit("Initial commit").unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+    assert!(tmp_dir.child("test.txt").path().exists());
+
+    // Create a new file in the repository.
+    tmp_dir.child("test2.txt").touch().unwrap();
+
+    // Commit the changes.
+    repo.commit("Second commit").unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+    assert!(tmp_dir.child("test.txt").path().exists());
+    assert!(tmp_dir.child("test2.txt").path().exists());
+}
+
+/// Test the deletion of a repository.
+#[test]
+fn test_delete() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path();
+
+    // Initialize the repository.
+    let repo = GitRepo::init(repo_dir).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
 
     // Delete the repository.
-    repo.delete_repo().unwrap();
+    repo.delete().unwrap();
 
     // Check if the repository exists.
     repo_not_exists!(repo_dir);

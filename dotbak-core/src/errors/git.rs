@@ -33,4 +33,12 @@ pub enum GitError {
         /// The source git error.
         source: git2::Error,
     },
+
+    /// There was an error creating a git commit.
+    #[snafu(display("Error creating git commit: {}", source))]
+    #[diagnostic(code(dotbak::error::git::commit))]
+    Commit {
+        /// The source git error.
+        source: git2::Error,
+    },
 }

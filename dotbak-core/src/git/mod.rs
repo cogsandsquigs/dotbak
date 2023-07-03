@@ -1,13 +1,13 @@
 mod tests;
 
 use crate::errors::{
-    git::{CloneSnafu, InitSnafu},
+    git::{CloneSnafu, CommitSnafu, GitError, InitSnafu},
     io::{CreateSnafu, DeleteSnafu, IoError},
     Result,
 };
 use git2::{
-    build::RepoBuilder, Cred, CredentialType, FetchOptions, RemoteCallbacks, Repository,
-    RepositoryInitOptions,
+    build::RepoBuilder, Cred, CredentialType, ErrorCode, FetchOptions, IndexAddOption, Oid,
+    RemoteCallbacks, Repository, RepositoryInitOptions,
 };
 use snafu::ResultExt;
 use std::{
@@ -31,7 +31,7 @@ impl GitRepo {
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
     /// directory does not exist, it will be created.
     /// TODO: implement logging and such.
-    pub fn init_repo<P>(path: P) -> Result<GitRepo>
+    pub fn init<P>(path: P) -> Result<GitRepo>
     where
         P: AsRef<Path>,
     {
@@ -65,7 +65,7 @@ impl GitRepo {
     ///
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
     /// directory does not exist, it will return an error.
-    pub fn load_repo<P>(path: P) -> Result<GitRepo>
+    pub fn load<P>(path: P) -> Result<GitRepo>
     where
         P: AsRef<Path>,
     {
@@ -99,7 +99,7 @@ impl GitRepo {
     ///
     /// `url` is the URL to the remote repository.
     /// TODO: implement logging and such.
-    pub fn clone_repo<P, S>(path: P, url: S) -> Result<GitRepo>
+    pub fn clone<P, S>(path: P, url: S) -> Result<GitRepo>
     where
         P: AsRef<Path>,
         S: ToString,
@@ -139,20 +139,89 @@ impl GitRepo {
         })
     }
 
+    /// Gets the path at which the repository is located.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// Commits all changed files to the repository. It will return an error if the repository is not initialized.
+    ///
+    /// `message` is the commit message.
+    ///
+    /// Returns the commit's OID -- this is the commit's hash.
+    pub fn commit(&self, message: &str) -> Result<Oid> {
+        // Get the index.
+        let mut index = self.repo.index().context(CommitSnafu)?;
+
+        // Add all files to the index.
+        index
+            .add_all(["*"].iter(), IndexAddOption::DEFAULT, None)
+            .context(CommitSnafu)?;
+
+        // Write the index.
+        index.write().context(CommitSnafu)?;
+
+        // Get the tree.
+        let tree_id = index.write_tree().context(CommitSnafu)?;
+
+        // Get the parent.
+        let parents = {
+            // Get the HEAD.
+            let head = self.repo.head();
+
+            // We check if the HEAD exists. This is because in a newly initialized repository, there will be
+            // no HEAD.
+            match head {
+                // If the HEAD exists, get the parent commit.
+                Ok(head) => {
+                    // Get the commit.
+                    let parent = head.peel_to_commit().context(CommitSnafu)?;
+
+                    // Return the commit.
+                    vec![parent]
+                }
+
+                // If this is a newly initialized repository, there will be no HEAD. Thus,
+                // we return no parents.
+                Err(e) if e.code() == ErrorCode::UnbornBranch => {
+                    // Return an empty vector.
+                    vec![]
+                }
+
+                // If this is an actual error, return it.
+                Err(e) => return Err(GitError::Commit { source: e }.into()),
+            }
+        };
+
+        // Get the signature.
+        let signature = self.repo.signature().context(CommitSnafu)?.to_owned();
+
+        // Create the commit.
+        let oid = self
+            .repo
+            .commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                message,
+                &self.repo.find_tree(tree_id).context(CommitSnafu)?,
+                // HACK: This makes it so all parents are passed as a slice of references.
+                &parents.iter().collect::<Vec<_>>(),
+            )
+            .context(CommitSnafu)?;
+
+        Ok(oid)
+    }
+
     /// Deletes the git repository. It will return an error if the repository is not initialized or is not
     /// there. Will not return an error if the repository is not empty.
     /// TODO: implement logging and such.
     /// TODO: Move symlinked files to their original location.
-    pub fn delete_repo(self) -> Result<()> {
+    pub fn delete(self) -> Result<()> {
         // Delete the repository using `fs::remove_dir_all`.
         fs::remove_dir_all(&self.path).context(DeleteSnafu { path: self.path })?;
 
         Ok(())
-    }
-
-    /// Gets the path at which the repository is located.
-    pub fn path(&self) -> &Path {
-        &self.path
     }
 }
 

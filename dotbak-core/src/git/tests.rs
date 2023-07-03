@@ -8,7 +8,7 @@ use crate::{
 use assert_fs::{prelude::*, TempDir};
 
 /// The repository URL for the test repository.
-const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld.git";
+const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld";
 
 /// Test if we can create a new repository at a given path.
 #[test]
@@ -327,7 +327,6 @@ fn test_push() {
 
     // Initialize the repository.
     let mut repo = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
-    // repo.set_remote(TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);

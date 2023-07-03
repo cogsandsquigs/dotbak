@@ -1,11 +1,13 @@
 mod tests;
 
-use crate::errors::{
-    config::ConfigError,
-    io::{CreateSnafu, ReadSnafu, WriteSnafu},
-    Result,
+use crate::{
+    errors::{
+        config::ConfigError,
+        io::{CreateSnafu, ReadSnafu, WriteSnafu},
+        Result,
+    },
+    CONFIG_FILE_NAME, REPO_FOLDER_NAME,
 };
-use crate::locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::path::Path;

@@ -1,7 +1,6 @@
 pub mod config;
 pub mod errors;
 pub mod git;
-pub(crate) mod locations;
 #[cfg(test)]
 pub(crate) mod test_util;
 mod tests;
@@ -9,10 +8,19 @@ mod tests;
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};
 use git::GitRepo;
-use locations::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
+use std::path::PathBuf;
+
+/// The name of the configuration file.
+pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
+
+/// The name of the git repository folder.
+pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
+    /// The home directory for the user running `dotbak`.
+    home_dir: PathBuf,
+
     /// The configuration for `dotbak`.
     config: Config,
 
@@ -25,13 +33,13 @@ impl Dotbak {
     /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
-        Self::init_from_dir(locations::dotbak_dir()?)
+        Self::init_from_dir(home_dir()?.join(".dotbak"))
     }
 
     /// Creates a new instance of `dotbak`. If the configuration file does not exist, an error will be returned.
     /// If it does exist, it will be loaded.
     pub fn load() -> Result<Self> {
-        Self::load_from_dir(locations::dotbak_dir()?)
+        Self::load_from_dir(home_dir()?.join(".dotbak"))
     }
 }
 
@@ -67,7 +75,11 @@ impl Dotbak {
         // Try to load the repository.
         let repo = GitRepo::init_repo(repo_path)?;
 
-        Ok(Dotbak { config, repo })
+        Ok(Dotbak {
+            home_dir: home_dir()?,
+            config,
+            repo,
+        })
     }
 
     /// Load an instance of `dotbak`, loading the configuration file from `<dir>/config.toml` and the
@@ -85,6 +97,15 @@ impl Dotbak {
         let config = Config::load_config(config_path)?;
         let repo = GitRepo::load_repo(repo_path)?;
 
-        Ok(Dotbak { config, repo })
+        Ok(Dotbak {
+            home_dir: home_dir()?,
+            config,
+            repo,
+        })
     }
+}
+
+/// Get the home directory for the user running `dotbak`.
+fn home_dir() -> Result<PathBuf> {
+    dirs::home_dir().ok_or(DotbakError::NoHomeDir)
 }

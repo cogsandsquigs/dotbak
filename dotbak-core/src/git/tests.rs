@@ -210,6 +210,12 @@ fn test_arbitrary_command() {
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
 
+    // Set username and email. This is so that we can commit in the CI.
+    repo.arbitrary_command(&["config", "user.name", "Test User"])
+        .unwrap();
+    repo.arbitrary_command(&["config", "user.email", "test_user@tests"])
+        .unwrap();
+
     // Create a file in the repository.
     tmp_dir.child("test.txt").touch().unwrap();
 

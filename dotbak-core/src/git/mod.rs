@@ -7,7 +7,7 @@ use crate::errors::{
 };
 use git2::{
     build::RepoBuilder, Cred, CredentialType, ErrorCode, FetchOptions, IndexAddOption, Oid,
-    RemoteCallbacks, Repository, RepositoryInitOptions,
+    RemoteCallbacks, Repository, RepositoryInitOptions, Signature,
 };
 use snafu::ResultExt;
 use std::{
@@ -194,7 +194,28 @@ impl GitRepo {
         };
 
         // Get the signature.
-        let signature = self.repo.signature().context(CommitSnafu)?.to_owned();
+        let signature = match self.repo.signature() {
+            // If the signature exists, return it.
+            Ok(signature) => signature,
+
+            // If the signature doesn't exist, return a default signature. This is to get around
+            // a user not having a signature set up.
+            Err(e) if e.code() == ErrorCode::NotFound => {
+                // Get the username.
+                let username = whoami::username();
+
+                // Get the email.
+                let email = format!("{}@{}", username, whoami::hostname());
+
+                // Create the signature.
+                Signature::now(&username, &email).context(CommitSnafu)?
+            }
+
+            // If this is an actual error, return it.
+            Err(e) => return Err(GitError::Commit { source: e }.into()),
+        };
+
+        // self.repo.signature().context(CommitSnafu)?.to_owned();
 
         // Create the commit.
         let oid = self

@@ -2,7 +2,7 @@
 
 use crate::{
     errors::{io::IoError, DotbakError},
-    git::GitRepo,
+    git::{run_arbitrary_git_command, GitRepo},
     repo_exists, repo_not_exists,
 };
 use assert_fs::{prelude::*, TempDir};
@@ -236,12 +236,6 @@ fn test_commit() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
-    // Create global git config.
-    tmp_dir
-        .child(".gitconfig")
-        .write_str("[user]\nname = Test User\nemail = test_user@tests")
-        .unwrap();
-
     // Get the path to the repo directory.
     let repo_dir = tmp_dir.path();
 
@@ -251,6 +245,12 @@ fn test_commit() {
     // Check if the repository exists.
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
+
+    // Create the git config.
+    repo.arbitrary_command(&["config", "user.name", "Test User"])
+        .unwrap();
+    repo.arbitrary_command(&["config", "user.email", "test_user@tests"])
+        .unwrap();
 
     // Create a file in the repository.
     tmp_dir.child("test.txt").touch().unwrap();

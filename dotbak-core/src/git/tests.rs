@@ -357,6 +357,39 @@ fn test_push() {
     }
 }
 
+/// Test pulling data from a remote repository.
+#[test]
+fn test_pull() {
+    // // Check if we are in a CI environment. If we are, skip the test.
+    // // This is because the environment doesn't have the correct credentials.
+    // // If we are not in a CI environment, run the test.
+    // if !in_ci() {
+    // Create a temporary directory.
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Get the path to the repo directory.
+    let repo_dir = tmp_dir.path();
+
+    // Initialize the repository.
+    let mut repo = Repository::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+
+    // Pull the changes.
+    repo.pull().unwrap();
+
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
+    // }
+    // // Otherwise, skip the test.
+    // else {
+    //     println!("Skipping test_pull because we are in a CI environment.");
+    // }
+}
+
 /// Test the deletion of a repository.
 #[test]
 fn test_delete() {

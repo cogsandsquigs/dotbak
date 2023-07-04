@@ -42,15 +42,8 @@ impl Files {
     where
         P: AsRef<Path>,
     {
-        // Append all the paths to `home_dir` to get the full path to the file/folder.
-        let original_paths = files
-            .iter()
-            .map(|file| self.home_dir.join(file))
-            .collect::<Vec<_>>();
-
-        // Move the file/folder from `home_dir` to `file_dir`.
-        fs_extra::move_items(&original_paths, &self.file_dir, &CopyOptions::default())
-            .context(FsExtraSnafu)?;
+        // Move the files from `home_dir` to `file_dir`.
+        move_files(files, &self.home_dir, &self.file_dir)?;
 
         // Now symlink them back to `home_dir`. Note that `file` is the relative path to the file/folder in `home_dir`.
         for file in files {
@@ -95,16 +88,33 @@ impl Files {
             })?;
         }
 
-        // Append all the paths to `file_dir` to get the full path to the file/folder.
-        let file_dir_paths = files
-            .iter()
-            .map(|file| self.file_dir.join(file))
-            .collect::<Vec<_>>();
-
-        // Move the file/folder from `file_dir` to `home_dir`.
-        fs_extra::move_items(&file_dir_paths, &self.home_dir, &CopyOptions::default())
-            .context(FsExtraSnafu)?;
+        move_files(files, &self.file_dir, &self.home_dir)?;
 
         Ok(())
     }
+}
+
+/// Helper function to move files from `from` to `to`.
+///
+/// `files` contains all the files with paths relative to `from`.
+///
+/// `from` and `to` are the full paths to the directories.
+///
+/// Returns either an error or `Ok(())`.
+fn move_files<P1, P2, P3>(files: &[P1], from: P2, to: P3) -> Result<()>
+where
+    P1: AsRef<Path>,
+    P2: AsRef<Path>,
+    P3: AsRef<Path>,
+{
+    // Append all the paths to `from` to get the full path to the file/folder.
+    let from_paths = files
+        .iter()
+        .map(|file| from.as_ref().join(file))
+        .collect::<Vec<_>>();
+
+    // Move the file/folder from `from` to `to`.
+    fs_extra::move_items(&from_paths, &to, &CopyOptions::default()).context(FsExtraSnafu)?;
+
+    Ok(())
 }

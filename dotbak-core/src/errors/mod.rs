@@ -1,5 +1,4 @@
 pub mod config;
-// pub mod git;
 pub mod io;
 
 use self::{config::ConfigError, io::IoError};
@@ -12,6 +11,7 @@ pub type Result<T> = std::result::Result<T, DotbakError>;
 /// The main error type for the program itself. This encapsulates all other errors, such as IO errors,
 /// configuration errors, git errors, etc.
 #[derive(Debug, Snafu, Diagnostic)]
+#[snafu(visibility(pub(crate)))]
 pub enum DotbakError {
     /// An IO operations error occured.
     Io { source: IoError },

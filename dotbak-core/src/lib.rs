@@ -1,7 +1,9 @@
-pub mod config;
 pub mod errors;
-pub mod git;
-pub(crate) mod test_util;
+
+mod config;
+mod files;
+mod git;
+mod test_util;
 mod tests;
 
 use config::Config;

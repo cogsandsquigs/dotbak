@@ -16,7 +16,8 @@
 	snafu  = "~0.7" # For error handling
 
 	# Filesystem
-	dirs = "~5" # Getting the user's home directory
+	dirs     = "~5" # Getting the user's home directory
+	fs_extra = "~1" # For filesystem operations
 
 	# Misc.
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.

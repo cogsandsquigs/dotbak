@@ -22,10 +22,24 @@ pub enum IoError {
     #[diagnostic(code(dotbak::error::io::write))]
     Write { source: io::Error, path: PathBuf },
 
-    /// A file creation error occured.
-    #[snafu(display("Error creating file '{}': {}", path.display(), source))]
+    /// A file/folder creation error occured.
+    #[snafu(display("Error creating file or folder '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::create))]
     Create { source: io::Error, path: PathBuf },
+
+    /// A symlink creation error occured.
+    #[snafu(display("Error creating symlink from '{}' to '{}': {}", from.display(), to.display(), source))]
+    #[diagnostic(code(dotbak::error::io::symlink))]
+    Symlink {
+        /// The path to the file/folder being symlinked.
+        from: PathBuf,
+
+        /// The path to the symlink.
+        to: PathBuf,
+
+        /// The source io error.
+        source: io::Error,
+    },
 
     /// A file deletion error occured.
     #[snafu(display("Error deleting file '{}': {}", path.display(), source))]
@@ -61,5 +75,12 @@ pub enum IoError {
 
         /// The stderr from the command.
         stderr: String,
+    },
+    /// An error with `fs_extra` occured.
+    /// TODO: Make this more specific.
+    #[diagnostic(code(dotbak::error::fs))]
+    FsExtra {
+        /// The source error.
+        source: fs_extra::error::Error,
     },
 }

@@ -236,6 +236,12 @@ fn test_commit() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
+    // Create global git config.
+    tmp_dir
+        .child(".gitconfig")
+        .write_str("[user]\nname = Test User\nemail = test_user@tests")
+        .unwrap();
+
     // Get the path to the repo directory.
     let repo_dir = tmp_dir.path();
 

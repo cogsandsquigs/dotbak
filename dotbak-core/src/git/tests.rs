@@ -1,14 +1,14 @@
 #![cfg(test)]
 
 use crate::{
-    errors::{git::GitError, io::IoError, DotbakError},
+    errors::{io::IoError, DotbakError},
     git::GitRepo,
     repo_exists, repo_not_exists,
 };
 use assert_fs::{prelude::*, TempDir};
 
 /// The repository URL for the test repository.
-const TEST_GIT_REPO_URL: &str = "https://github.com/githubtraining/hellogitworld";
+const TEST_GIT_REPO_URL: &str = "https://github.com/cogsandsquigs/dotbak";
 
 /// Test if we can create a new repository at a given path.
 #[test]
@@ -46,7 +46,7 @@ fn test_init_path_nonexistent() {
     assert_eq!(repo.path, repo_dir);
 }
 
-/// Test if we fail when initing a repo in a repository that already exists.
+/// Test that we don't fail when initing a repo in a repository that already exists.
 #[test]
 fn test_init_exists_already() {
     // Create a temporary directory.
@@ -62,19 +62,12 @@ fn test_init_exists_already() {
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
 
-    // Try to initialize the repository again.
-    let result = GitRepo::init(repo_dir, None);
+    // Initialize the repository again.
+    let repo = GitRepo::init(repo_dir, None).unwrap();
 
-    // Check if the result is an error.
-    assert!(result.is_err());
-
-    // Check that it is a git init error.
-    assert!(matches!(
-        result,
-        Err(DotbakError::Git {
-            source: GitError::Init { .. }
-        })
-    ));
+    // Check if the repository exists.
+    repo_exists!(repo_dir);
+    assert_eq!(repo.path, repo_dir);
 }
 
 /// Test if we can load a pre-existing repository.
@@ -187,9 +180,9 @@ fn test_clone_exists_already() {
     // Check that it is a git clone error.
     assert!(matches!(
         result,
-        Err(DotbakError::Git {
-            source: GitError::Clone { .. }
-        })
+        Err(DotbakError::Io {
+            source: IoError::CommandRun { stderr, .. }
+        }) if stderr.contains("already exists and is not an empty directory")
     ));
 }
 
@@ -204,7 +197,7 @@ fn test_arbitrary_command() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init(repo_dir, None).unwrap();
+    let mut repo = GitRepo::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);

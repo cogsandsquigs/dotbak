@@ -1,8 +1,8 @@
 pub mod config;
-pub mod git;
+// pub mod git;
 pub mod io;
 
-use self::{config::ConfigError, git::GitError, io::IoError};
+use self::{config::ConfigError, io::IoError};
 use miette::Diagnostic;
 use snafu::prelude::*;
 
@@ -19,9 +19,8 @@ pub enum DotbakError {
     /// A configuration error occured.
     Config { source: ConfigError },
 
-    /// A git error occured.
-    Git { source: GitError },
-
+    // /// A git error occured.
+    // Git { source: GitError },
     /// There's no home directory for this computer.
     #[snafu(display("No home directory found for this computer! This should never happen!"))]
     #[diagnostic(code(dotbak::error::no_home_dir))]
@@ -43,9 +42,9 @@ impl From<ConfigError> for DotbakError {
     }
 }
 
-/// Convert `GitError` into a `DotbakError`
-impl From<GitError> for DotbakError {
-    fn from(err: GitError) -> Self {
-        Self::Git { source: err }
-    }
-}
+// /// Convert `GitError` into a `DotbakError`
+// impl From<GitError> for DotbakError {
+//     fn from(err: GitError) -> Self {
+//         Self::Git { source: err }
+//     }
+// }

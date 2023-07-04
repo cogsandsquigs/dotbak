@@ -18,9 +18,6 @@
 	# Filesystem
 	dirs = "~5" # Getting the user's home directory
 
-	# Git
-	git2 = { version = "~0.17" }
-
 	# Misc.
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.

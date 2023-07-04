@@ -9,7 +9,7 @@ mod tests;
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};
 use git::Repository;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// The name of the configuration file.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
@@ -34,28 +34,29 @@ impl Dotbak {
     /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
-        Self::init_from_dir(home_dir()?.join(".dotbak"))
+        Self::init_from_dir(home_dir()?.join(".dotbak"), home_dir()?)
     }
 
     /// Creates a new instance of `dotbak`. If the configuration file does not exist, an error will be returned.
     /// If it does exist, it will be loaded.
     pub fn load() -> Result<Self> {
-        Self::load_from_dir(home_dir()?.join(".dotbak"))
+        Self::load_from_dir(home_dir()?.join(".dotbak"), home_dir()?)
     }
 }
 
-/// Private API for `Dotbak`.
+/// Private API for `Dotbak`. These are mainly used for testing.
 impl Dotbak {
-    /// Initialize a new instance of `dotbak`, loading the configuration file from `<dir>/config.toml` and the
-    /// repository from `<dir>/dotfiles`.
-    fn init_from_dir<P>(dir: P) -> Result<Self>
+    /// Initialize a new instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
+    /// repository from `<dotbak>/dotfiles`. The user's home directory is assumed to be `<home>`.
+    fn init_from_dir<P1, P2>(home: P1, dotbak: P2) -> Result<Self>
     where
-        P: AsRef<std::path::Path>,
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
     {
-        let dir = dir.as_ref();
+        let dotbak_dir = dotbak.as_ref();
 
-        let config_path = dir.join(CONFIG_FILE_NAME);
-        let repo_path = dir.join(REPO_FOLDER_NAME);
+        let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
+        let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
 
         // Try to load the configuration file.
         let config = match Config::load_config(&config_path) {
@@ -77,7 +78,7 @@ impl Dotbak {
         let repo = Repository::init(repo_path, None)?;
 
         Ok(Dotbak {
-            home_dir: home_dir()?,
+            home_dir: home.as_ref().to_path_buf(),
             config,
             repo,
         })
@@ -85,21 +86,23 @@ impl Dotbak {
 
     /// Load an instance of `dotbak`, loading the configuration file from `<dir>/config.toml` and the
     /// repository from `<dir>/dotfiles`.
-    fn load_from_dir<P>(dir: P) -> Result<Self>
+    ///
+    fn load_from_dir<P1, P2>(home: P1, dotbak: P2) -> Result<Self>
     where
-        P: AsRef<std::path::Path>,
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
     {
-        let dir = dir.as_ref();
+        let dotbak_dir = dotbak.as_ref();
 
-        let config_path = dir.join(CONFIG_FILE_NAME);
-        let repo_path = dir.join(REPO_FOLDER_NAME);
+        let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
+        let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
         let repo = Repository::load(repo_path)?;
 
         Ok(Dotbak {
-            home_dir: home_dir()?,
+            home_dir: home.as_ref().to_path_buf(),
             config,
             repo,
         })

@@ -360,10 +360,6 @@ fn test_push() {
 /// Test pulling data from a remote repository.
 #[test]
 fn test_pull() {
-    // // Check if we are in a CI environment. If we are, skip the test.
-    // // This is because the environment doesn't have the correct credentials.
-    // // If we are not in a CI environment, run the test.
-    // if !in_ci() {
     // Create a temporary directory.
     let tmp_dir = TempDir::new().unwrap();
 
@@ -383,11 +379,6 @@ fn test_pull() {
     // Check if the repository exists.
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
-    // }
-    // // Otherwise, skip the test.
-    // else {
-    //     println!("Skipping test_pull because we are in a CI environment.");
-    // }
 }
 
 /// Test the deletion of a repository.

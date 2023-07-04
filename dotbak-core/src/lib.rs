@@ -6,7 +6,7 @@ mod tests;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};
-use git::GitRepo;
+use git::Repository;
 use std::path::PathBuf;
 
 /// The name of the configuration file.
@@ -24,7 +24,7 @@ pub struct Dotbak {
     config: Config,
 
     /// The repository for `dotbak`.
-    repo: GitRepo,
+    repo: Repository,
 }
 
 /// Public API for `Dotbak`.
@@ -72,7 +72,7 @@ impl Dotbak {
         };
 
         // Try to load the repository.
-        let repo = GitRepo::init(repo_path, None)?;
+        let repo = Repository::init(repo_path, None)?;
 
         Ok(Dotbak {
             home_dir: home_dir()?,
@@ -94,7 +94,7 @@ impl Dotbak {
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
-        let repo = GitRepo::load(repo_path)?;
+        let repo = Repository::load(repo_path)?;
 
         Ok(Dotbak {
             home_dir: home_dir()?,

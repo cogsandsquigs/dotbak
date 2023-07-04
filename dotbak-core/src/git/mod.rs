@@ -13,7 +13,7 @@ use std::{
 
 /// A wrapper structure around git2's `Repository` object.
 #[derive(Debug)]
-pub struct GitRepo {
+pub struct Repository {
     /// The repository path for `dotbak`. Note that this is not the `.git` directory, but the directory
     /// containing the `.git` directory.
     path: PathBuf,
@@ -21,8 +21,8 @@ pub struct GitRepo {
     // repo: Repository,
 }
 
-/// Public git API for `GitRepo`.
-impl GitRepo {
+/// Public git API for `Repository`.
+impl Repository {
     /// Initialize a new git repository. It will not return an error if the repository is already initialized.
     ///
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
@@ -30,7 +30,7 @@ impl GitRepo {
     /// TODO: implement logging and such.
     ///
     /// `remote_url` is the URL to the remote repository. This will be set to the `origin` remote.
-    pub fn init<P>(path: P, remote_url: Option<String>) -> Result<GitRepo>
+    pub fn init<P>(path: P, remote_url: Option<String>) -> Result<Repository>
     where
         P: AsRef<Path>,
     {
@@ -58,7 +58,7 @@ impl GitRepo {
         //     url: None,
         // })?;
 
-        // Ok(GitRepo {
+        // Ok(Repository {
         //     path: path.to_path_buf(),
         //     repo,
         // })
@@ -74,7 +74,7 @@ impl GitRepo {
         run_arbitrary_git_command(path.as_ref(), &["init", "--initial-branch", "main", "."])?;
 
         // Create the repository.
-        let mut repo = GitRepo {
+        let mut repo = Repository {
             path: path.as_ref().to_path_buf(),
         };
 
@@ -124,7 +124,7 @@ impl GitRepo {
     ///
     /// `path` is the path to the repository directory, and the repository exists inside the folder. If the
     /// directory does not exist, it will return an error.
-    pub fn load<P>(path: P) -> Result<GitRepo>
+    pub fn load<P>(path: P) -> Result<Repository>
     where
         P: AsRef<Path>,
     {
@@ -144,7 +144,7 @@ impl GitRepo {
         //     url: None,
         // })?;
 
-        // Ok(GitRepo {
+        // Ok(Repository {
         //     path: path.to_path_buf(),
         //     repo,
         // })
@@ -167,7 +167,7 @@ impl GitRepo {
         }
 
         // Return the repository.
-        Ok(GitRepo {
+        Ok(Repository {
             path: path.as_ref().to_path_buf(),
         })
     }
@@ -180,7 +180,7 @@ impl GitRepo {
     ///
     /// `url` is the URL to the remote repository.
     /// TODO: implement logging and such.
-    pub fn clone<P, S>(path: P, url: S) -> Result<GitRepo>
+    pub fn clone<P, S>(path: P, url: S) -> Result<Repository>
     where
         P: AsRef<Path>,
         S: ToString,
@@ -199,7 +199,7 @@ impl GitRepo {
         run_arbitrary_git_command(path, &["clone", &url, "."])?;
 
         // Create the repository.
-        let repo = GitRepo {
+        let repo = Repository {
             path: path.to_path_buf(),
         };
 
@@ -290,8 +290,8 @@ impl GitRepo {
     }
 }
 
-/// Private git API for `GitRepo`.
-impl GitRepo {
+/// Private git API for `Repository`.
+impl Repository {
     // /// Gets the parents of the current HEAD. If there is no HEAD, it will return an empty vector.
     // fn parents(&self) -> Result<Vec<Commit<'_>>> {
     //     // Get the HEAD.

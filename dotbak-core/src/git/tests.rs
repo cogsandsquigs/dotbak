@@ -2,7 +2,7 @@
 
 use crate::{
     errors::{io::IoError, DotbakError},
-    git::GitRepo,
+    git::Repository,
     repo_exists, repo_not_exists,
 };
 use assert_fs::{prelude::*, TempDir};
@@ -29,7 +29,7 @@ fn test_init_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init(repo_dir, None).unwrap();
+    let repo = Repository::init(repo_dir, None).unwrap();
 
     println!("{:?}", repo_dir);
 
@@ -48,7 +48,7 @@ fn test_init_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let repo = GitRepo::init(&repo_dir, None).unwrap();
+    let repo = Repository::init(&repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
@@ -65,14 +65,14 @@ fn test_init_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init(repo_dir, None).unwrap();
+    let repo = Repository::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
     assert_eq!(repo.path, repo_dir);
 
     // Initialize the repository again.
-    let repo = GitRepo::init(repo_dir, None).unwrap();
+    let repo = Repository::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -89,13 +89,13 @@ fn test_load_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init(repo_dir, None).unwrap();
+    let repo = Repository::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
 
     // Load the repository.
-    let result = GitRepo::load(repo_dir);
+    let result = Repository::load(repo_dir);
 
     // Check if the result is ok.
     assert!(result.is_ok());
@@ -115,7 +115,7 @@ fn test_load_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Load the repository.
-    let result = GitRepo::load(repo_dir);
+    let result = Repository::load(repo_dir);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -139,7 +139,7 @@ fn test_clone_path_exists() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
+    let repo = Repository::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -156,7 +156,7 @@ fn test_clone_path_nonexistent() {
     let repo_dir = tmp_dir.path().join("some/sub/folders");
 
     // Initialize the repository.
-    let repo = GitRepo::clone(&repo_dir, TEST_GIT_REPO_URL).unwrap();
+    let repo = Repository::clone(&repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
@@ -173,7 +173,7 @@ fn test_clone_exists_already() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init(repo_dir, None);
+    let repo = Repository::init(repo_dir, None);
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -181,7 +181,7 @@ fn test_clone_exists_already() {
 
     // Try to clone the repository again.
     // THIS SHOULD PANIC
-    let result = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL);
+    let result = Repository::clone(repo_dir, TEST_GIT_REPO_URL);
 
     // Check if the result is an error.
     assert!(result.is_err());
@@ -206,7 +206,7 @@ fn test_arbitrary_command() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let mut repo = GitRepo::init(repo_dir, None).unwrap();
+    let mut repo = Repository::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -249,7 +249,7 @@ fn test_commit() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let mut repo = GitRepo::init(repo_dir, None).unwrap();
+    let mut repo = Repository::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);
@@ -295,7 +295,7 @@ fn test_set_remote() {
     let mut repo_dir = tmp_dir.path().to_path_buf();
 
     // Initialize the repository.
-    let mut repo = GitRepo::init(&repo_dir, None).unwrap();
+    let mut repo = Repository::init(&repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
@@ -310,7 +310,7 @@ fn test_set_remote() {
 
     // Clone the repository.
     repo_dir = tmp_dir.path().join("clone");
-    let mut repo = GitRepo::clone(&repo_dir, TEST_GIT_REPO_URL).unwrap();
+    let mut repo = Repository::clone(&repo_dir, TEST_GIT_REPO_URL).unwrap();
 
     // Check if the repository exists.
     repo_exists!(&repo_dir);
@@ -338,7 +338,7 @@ fn test_push() {
         let repo_dir = tmp_dir.path();
 
         // Initialize the repository.
-        let mut repo = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
+        let mut repo = Repository::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
 
         // Check if the repository exists.
         repo_exists!(repo_dir);
@@ -367,7 +367,7 @@ fn test_delete() {
     let repo_dir = tmp_dir.path();
 
     // Initialize the repository.
-    let repo = GitRepo::init(repo_dir, None).unwrap();
+    let repo = Repository::init(repo_dir, None).unwrap();
 
     // Check if the repository exists.
     repo_exists!(repo_dir);

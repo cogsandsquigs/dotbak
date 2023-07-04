@@ -37,6 +37,16 @@ fn test_move_and_symlink() {
         file.touch().unwrap();
     }
 
+    // Check if the files exist in the correct place.
+    for file in &moved_files {
+        assert!(!file.exists());
+    }
+
+    // Check if the files exist in the correct place.
+    for file in &original_files {
+        assert!(file.exists());
+    }
+
     // Now get the relative paths to the files.
     let relative_paths = original_files
         .iter()
@@ -53,7 +63,8 @@ fn test_move_and_symlink() {
 
     // Check if the files exist in the correct place.
     for file in &original_files {
-        assert!(file.exists());
+        // This is a symlink, so instead of checking if it exists, check if it's a symlink.
+        assert!(file.read_link().is_ok());
     }
 }
 

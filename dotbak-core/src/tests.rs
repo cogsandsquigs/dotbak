@@ -2,6 +2,10 @@
 
 use super::*;
 use assert_fs::TempDir;
+use std::fs;
+
+/// The repository URL for the test repository.
+const TEST_GIT_REPO_URL: &str = "https://github.com/cogsandsquigs/dotbak";
 
 /// Test if we can initialize a new `Dotbak` instance from a directory.
 #[test]
@@ -9,7 +13,7 @@ fn test_init_dotbak() {
     let dir = TempDir::new().unwrap();
     let dotbak_dir = dir.path();
     let home_dir = dir.path().join("home");
-    let result = Dotbak::init_from_dir(home_dir, dotbak_dir);
+    let result = Dotbak::init_into_dirs(home_dir, dotbak_dir);
 
     assert!(result.is_ok());
     assert_eq!(
@@ -26,7 +30,7 @@ fn test_init_dotbak_no_dir() {
     let dir = TempDir::new().unwrap();
     let dotbak_dir = dir.path().join("some/sub/directory");
     let home_dir = dir.path().join("home");
-    let result = Dotbak::init_from_dir(home_dir, &dotbak_dir);
+    let result = Dotbak::init_into_dirs(home_dir, &dotbak_dir);
 
     assert!(result.is_ok());
     assert_eq!(
@@ -44,7 +48,7 @@ fn test_load_dotbak() {
     let dir = TempDir::new().unwrap();
     let dotbak_dir = dir.path();
     let home_dir = dir.path().join("home");
-    let result = Dotbak::init_from_dir(&home_dir, dotbak_dir);
+    let result = Dotbak::init_into_dirs(&home_dir, dotbak_dir);
 
     assert!(result.is_ok());
     assert_eq!(
@@ -54,7 +58,7 @@ fn test_load_dotbak() {
     assert!(dotbak_dir.join(CONFIG_FILE_NAME).exists());
     repo_exists!(dotbak_dir.join(REPO_FOLDER_NAME));
 
-    let result = Dotbak::load_from_dir(&home_dir, dotbak_dir);
+    let result = Dotbak::load_into_dirs(&home_dir, dotbak_dir);
 
     assert!(result.is_ok());
     assert_eq!(
@@ -71,7 +75,7 @@ fn test_load_dotbak_no_dir() {
     let dir = TempDir::new().unwrap();
     let dotbak_dir = dir.path();
     let home_dir = dir.path().join("home");
-    let result = Dotbak::load_from_dir(home_dir, dotbak_dir);
+    let result = Dotbak::load_into_dirs(home_dir, dotbak_dir);
 
     assert!(result.is_err());
     assert!(matches!(
@@ -80,4 +84,54 @@ fn test_load_dotbak_no_dir() {
             source: ConfigError::ConfigNotFound { .. },
         }
     ));
+}
+
+/// Test if we can clone a repository from a remote location and initialize a `Dotbak` instance from it.
+#[test]
+fn test_clone_dotbak() {
+    let dir = TempDir::new().unwrap();
+    let dotbak_dir = dir.path();
+    let home_dir = dir.path().join("home");
+    let result = Dotbak::clone_into_dirs(home_dir, dotbak_dir, TEST_GIT_REPO_URL);
+
+    assert!(result.is_ok());
+    assert_eq!(
+        result.unwrap().repo.path(),
+        dotbak_dir.join(REPO_FOLDER_NAME)
+    );
+    assert!(dotbak_dir.join(CONFIG_FILE_NAME).exists());
+    repo_exists!(dotbak_dir.join(REPO_FOLDER_NAME));
+}
+
+/// Test if we can add files to the `Dotbak` manager.
+#[test]
+fn test_add_files() {
+    let dir = TempDir::new().unwrap();
+    let home_dir = dir.path().join("home");
+    let dotbak_dir = dir.path().join("dotbak");
+
+    let test_file = PathBuf::from("test.txt");
+    let full_test_file_path = home_dir.join(&test_file);
+    let expected_file = dotbak_dir.join(REPO_FOLDER_NAME).join("test.txt");
+
+    // Create the home directory and the test file.
+    fs::create_dir_all(&home_dir).unwrap();
+    assert!(home_dir.exists());
+    assert!(!full_test_file_path.exists());
+
+    fs::File::create(&full_test_file_path).unwrap();
+
+    assert!(full_test_file_path.exists());
+
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &dotbak_dir).unwrap();
+
+    assert!(!dotbak.config.files.include.contains(&test_file));
+    assert!(!expected_file.exists());
+
+    dotbak.add(&[&test_file]).unwrap();
+
+    // This is a symlink, so instead of checking if it exists, check if it's a symlink.
+    assert_eq!(full_test_file_path.read_link().unwrap(), expected_file);
+    assert!(dotbak.config.files.include.contains(&test_file));
+    assert!(expected_file.exists());
 }

@@ -1,20 +1,20 @@
+pub mod files;
 mod tests;
 
-use crate::{
-    errors::{
-        config::ConfigError,
-        io::{CreateSnafu, ReadSnafu, WriteSnafu},
-        Result,
-    },
-    CONFIG_FILE_NAME, REPO_FOLDER_NAME,
+use crate::errors::{
+    config::ConfigError,
+    io::{CreateSnafu, ReadSnafu, WriteSnafu},
+    Result,
 };
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::path::Path;
 use std::{fs, path::PathBuf};
 
+use self::files::FilesConfig;
+
 /// The configuration that Dotbak uses to run.
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// The location of the configuration file. This is a temporary value that will be overwritten
     /// later when loading in `Config::load_config`, so it is not serialized.
@@ -27,19 +27,10 @@ pub struct Config {
     /// the repository again.
     pub repository_url: Option<String>,
 
-    /// The inclusion patterns for files to backup. This is a list of glob patterns to match
-    /// against the files in the home directory. These are all relative to the home directory.
-    /// When both include and exclude patterns match a file, the exclude pattern takes precedence.
-    /// The default value is `[".dotbak/config.toml"]`, which is the configuration file itself.
-    #[serde(default = "Config::default_include")]
-    pub include: Vec<PathBuf>,
-
-    /// The exclusion patterns for files to backup. This is a list of glob patterns to match
-    /// against the files in the home directory. These are all relative to the home directory.
-    /// When both include and exclude patterns match a file, the exclude pattern takes precedence.
-    /// The default value is `[".dotbak/dotfiles"]`, which is the dotfile repository.
-    #[serde(default = "Config::default_exclude")]
-    pub exclude: Vec<PathBuf>,
+    /// The configuration for the `Files` struct. This is a list of files and folders that will be
+    /// managed by Dotbak.
+    #[serde(default)]
+    pub files: FilesConfig,
 }
 
 impl Default for Config {
@@ -48,8 +39,7 @@ impl Default for Config {
         Config {
             path: PathBuf::new(), // This is a temporary value that will be overwritten later.
             repository_url: None, // No default value.
-            include: Config::default_include(),
-            exclude: Config::default_exclude(),
+            files: FilesConfig::default(),
         }
     }
 }
@@ -135,18 +125,5 @@ impl Config {
         config.path = path.to_path_buf();
 
         Ok(config)
-    }
-}
-
-/// Private API for the configuration.
-impl Config {
-    /// Returns the default for `include`.
-    fn default_include() -> Vec<PathBuf> {
-        vec![PathBuf::from(".dotbak/").join(CONFIG_FILE_NAME)]
-    }
-
-    /// Returns the default for `exclude`.
-    fn default_exclude() -> Vec<PathBuf> {
-        vec![PathBuf::from(".dotbak/").join(REPO_FOLDER_NAME)]
     }
 }

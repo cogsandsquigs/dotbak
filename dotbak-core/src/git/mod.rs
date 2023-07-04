@@ -4,6 +4,7 @@ use crate::errors::{
     io::{CommandIOSnafu, CreateSnafu, DeleteSnafu, IoError},
     DotbakError, Result,
 };
+use itertools::Itertools;
 use snafu::ResultExt;
 use std::{
     fs,
@@ -71,7 +72,7 @@ impl Repository {
     /// initialized. The remote is named REMOTE_NAME.
     ///
     /// `url` is the URL to the remote repository.
-    pub fn set_remote<S>(&mut self, url: S) -> Result<()>
+    pub fn set_remote<S>(&mut self, url: S) -> Result<Output>
     where
         S: ToString,
     {
@@ -83,7 +84,7 @@ impl Repository {
 
         match result {
             // If the command succeeded, return.
-            Ok(_) => Ok(()),
+            Ok(output) => Ok(output),
 
             // If the remote could not be found, create it.
             Err(DotbakError::Io {
@@ -91,9 +92,7 @@ impl Repository {
             }) if stderr == *"error: No such remote 'origin'\n" => {
                 // Run the remote command.
                 run_arbitrary_git_command(&self.path, &["remote", "add", REMOTE_NAME, &url])?;
-                run_arbitrary_git_command(&self.path, &["remote", "set-url", REMOTE_NAME, &url])?;
-
-                Ok(())
+                run_arbitrary_git_command(&self.path, &["remote", "set-url", REMOTE_NAME, &url])
             }
 
             // If the command failed, return an error.
@@ -192,18 +191,14 @@ impl Repository {
 
     /// Pushes all commits to the remote repository. It will return an error if the repository is not
     /// initialized.
-    pub fn push(&mut self) -> Result<()> {
-        self.arbitrary_command(&["push", REMOTE_NAME, MAIN_BRANCH_NAME])?;
-
-        Ok(())
+    pub fn push(&mut self) -> Result<Output> {
+        self.arbitrary_command(&["push", REMOTE_NAME, MAIN_BRANCH_NAME])
     }
 
     /// Pulls all commits from the remote repository. It will return an error if the repository is not
     /// initialized.
-    pub fn pull(&mut self) -> Result<()> {
-        self.arbitrary_command(&["pull", REMOTE_NAME, MAIN_BRANCH_NAME])?;
-
-        Ok(())
+    pub fn pull(&mut self) -> Result<Output> {
+        self.arbitrary_command(&["pull", REMOTE_NAME, MAIN_BRANCH_NAME])
     }
 
     /// Deletes the git repository. It will return an error if the repository is not initialized or is not
@@ -245,14 +240,14 @@ where
         .output()
         .context(CommandIOSnafu {
             command: "git".to_string(),
-            args: args.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            args: args.iter().map(|s| s.to_string()).collect_vec(),
         })?;
 
     // Check if the command failed.
     if !output.status.success() {
         return Err(IoError::CommandRun {
             command: "git".to_string(),
-            args: args.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            args: args.iter().map(|s| s.to_string()).collect_vec(),
             stdout: String::from_utf8_lossy(&output.stdout).to_string(),
             stderr: String::from_utf8_lossy(&output.stderr).to_string(),
         }

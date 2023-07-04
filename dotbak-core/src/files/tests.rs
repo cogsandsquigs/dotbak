@@ -2,6 +2,7 @@
 
 use super::Files;
 use assert_fs::prelude::*;
+use itertools::Itertools;
 
 /// Test if we can move items from `home_dir` to `file_dir`.
 #[test]
@@ -40,7 +41,7 @@ fn test_move_and_symlink() {
     let relative_paths = original_files
         .iter()
         .map(|file| file.path().strip_prefix(home_dir.path()).unwrap())
-        .collect::<Vec<_>>();
+        .collect_vec();
 
     // Move the files.
     file_manager.move_and_symlink(&relative_paths).unwrap();
@@ -58,7 +59,7 @@ fn test_move_and_symlink() {
 
 /// Test the undoing of `move_and_symlink`.
 #[test]
-fn test_undo_move_and_symlink() {
+fn test_remove_and_restore() {
     let temp: assert_fs::TempDir = assert_fs::TempDir::new().unwrap();
     let home_dir = temp.child("home");
     let file_dir = temp.child("files");
@@ -93,7 +94,7 @@ fn test_undo_move_and_symlink() {
     let relative_paths = original_files
         .iter()
         .map(|file| file.path().strip_prefix(home_dir.path()).unwrap())
-        .collect::<Vec<_>>();
+        .collect_vec();
 
     // Move the files.
     file_manager.move_and_symlink(&relative_paths).unwrap();
@@ -109,7 +110,7 @@ fn test_undo_move_and_symlink() {
     }
 
     // Now undo the operation.
-    file_manager.undo_move_and_symlink(&relative_paths).unwrap();
+    file_manager.remove_and_restore(&relative_paths).unwrap();
 
     // Check if the files exist in the correct place.
     for file in &moved_files {

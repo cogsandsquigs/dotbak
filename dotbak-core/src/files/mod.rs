@@ -5,6 +5,7 @@ use crate::errors::{
     Result,
 };
 use fs_extra::dir::CopyOptions;
+use itertools::Itertools;
 use snafu::ResultExt;
 use std::path::{Path, PathBuf};
 
@@ -71,7 +72,7 @@ impl Files {
     /// `files` are the paths to the file in `home_dir`. These paths must be relative to `home_dir`.
     ///
     /// Returns either an error or `Ok(())`.
-    pub fn undo_move_and_symlink<P>(&self, files: &[P]) -> Result<()>
+    pub fn remove_and_restore<P>(&self, files: &[P]) -> Result<()>
     where
         P: AsRef<Path>,
     {
@@ -111,7 +112,7 @@ where
     let from_paths = files
         .iter()
         .map(|file| from.as_ref().join(file))
-        .collect::<Vec<_>>();
+        .collect_vec();
 
     // Move the file/folder from `from` to `to`.
     fs_extra::move_items(&from_paths, &to, &CopyOptions::default()).context(FsExtraSnafu)?;

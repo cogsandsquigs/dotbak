@@ -20,6 +20,7 @@
 	fs_extra = "~1" # For filesystem operations
 
 	# Misc.
+	itertools = "~0.11" # For iterators and other things
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
 

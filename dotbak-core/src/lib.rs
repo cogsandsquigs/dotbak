@@ -8,7 +8,9 @@ mod tests;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};
+use files::Files;
 use git::Repository;
+use itertools::Itertools;
 use std::path::{Path, PathBuf};
 
 /// The name of the configuration file.
@@ -19,14 +21,14 @@ pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
-    /// The home directory for the user running `dotbak`.
-    home_dir: PathBuf,
-
     /// The configuration for `dotbak`.
     config: Config,
 
     /// The repository for `dotbak`.
     repo: Repository,
+
+    /// The dotfiles that are being managed by `dotbak`.
+    dotfiles: Files,
 }
 
 /// Public API for `Dotbak`.
@@ -42,6 +44,129 @@ impl Dotbak {
     pub fn load() -> Result<Self> {
         Self::load_from_dir(home_dir()?.join(".dotbak"), home_dir()?)
     }
+
+    /// Add a set of files/folders to the repository. This will move the files/folders to the repository and
+    /// symlink them to their original location. It also writes their paths to the configuration file in the `include`
+    /// list, and removes them from the `exclude` list.
+    /// TODO: Make this respect the `include` and `exclude` configuration options.
+    pub fn add<P>(&mut self, paths: &[P]) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        // Add the paths to the `include` list.
+        self.config
+            .include
+            .extend(paths.iter().map(|p| p.as_ref().to_path_buf()));
+
+        // Remove the paths from the `exclude` list.
+        self.config
+            .exclude
+            .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
+
+        // Save the configuration file.
+        self.config.save_config()?;
+
+        // Move the files/folders to the repository and symlink them to their original location.
+        self.dotfiles.move_and_symlink(paths)?;
+
+        // Commit to the repository.
+        // TODO: Make this message configurable.
+        self.repo.commit(&format!(
+            "Add files: {}",
+            paths.iter().map(|p| p.as_ref().display()).join(", ")
+        ))?;
+
+        Ok(())
+    }
+
+    /// Remove a set of files/folders from the repository. This will remove the files/folders from the repository
+    /// and restore them to their original location. It also removes their paths from the configuration file in the
+    /// `include` list.
+    /// TODO: Make this respect the `include` and `exclude` configuration options.
+    pub fn remove<P>(&mut self, paths: &[P]) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        // Remove the paths from the `include` list.
+        self.config
+            .include
+            .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
+
+        // Save the configuration file.
+        self.config.save_config()?;
+
+        // Remove the files/folders from the repository and restore them to their original location.
+        self.dotfiles.remove_and_restore(paths)?;
+
+        // Commit to the repository.
+        // TODO: Make this message configurable.
+        self.repo.commit(&format!(
+            "Remove files: {}",
+            paths.iter().map(|p| p.as_ref().display()).join(", ")
+        ))?;
+
+        Ok(())
+    }
+
+    /// Excludes a set of files/folders from the repository. This will remove the files/folders from the repository
+    /// and restore them to their original location. It also removes their paths from the configuration file in the
+    /// `include` list, and adds them to the `exclude` list.
+    pub fn exclude<P>(&mut self, paths: &[P]) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        // Add the paths to the `exclude` list.
+        self.config
+            .exclude
+            .extend(paths.iter().map(|p| p.as_ref().to_path_buf()));
+
+        // Remove the paths from the `include` list.
+        self.config
+            .include
+            .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
+
+        // Save the configuration file.
+        self.config.save_config()?;
+
+        // Remove the files/folders from the repository and restore them to their original location.
+        self.dotfiles.remove_and_restore(paths)?;
+
+        // Commit to the repository.
+        // TODO: Make this message configurable.
+        self.repo.commit(&format!(
+            "Remove files: {}",
+            paths.iter().map(|p| p.as_ref().display()).join(", ")
+        ))?;
+
+        Ok(())
+    }
+
+    /// Push the repository to the remote.
+    /// TODO: Logging/tracing and such.
+    pub fn push(&mut self) -> Result<()> {
+        self.repo.push()?;
+
+        Ok(())
+    }
+
+    /// Pull changes from the remote.
+    /// TODO: Logging/tracing and such.
+    pub fn pull(&mut self) -> Result<()> {
+        self.repo.pull()?;
+
+        Ok(())
+    }
+
+    /// Run an arbitrary git command on the repository.
+    pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<()> {
+        self.repo.arbitrary_command(args)?;
+
+        Ok(())
+    }
+
+    // Deinitializes `dotbak`, removing the configuration file and the repository. This also restores all files
+    // that were managed by `dotbak` to their original location.
+    // TODO: Make this work.
 }
 
 /// Private API for `Dotbak`. These are mainly used for testing.
@@ -75,12 +200,13 @@ impl Dotbak {
         };
 
         // Try to load the repository.
-        let repo = Repository::init(repo_path, None)?;
+        let repo = Repository::init(&repo_path, None)?;
+        let home_dir = home.as_ref().to_path_buf();
 
         Ok(Dotbak {
-            home_dir: home.as_ref().to_path_buf(),
             config,
             repo,
+            dotfiles: Files::init(home_dir, repo_path),
         })
     }
 
@@ -99,12 +225,13 @@ impl Dotbak {
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
-        let repo = Repository::load(repo_path)?;
+        let repo = Repository::load(&repo_path)?;
+        let home_dir = home.as_ref().to_path_buf();
 
         Ok(Dotbak {
-            home_dir: home.as_ref().to_path_buf(),
             config,
             repo,
+            dotfiles: Files::init(home_dir, repo_path),
         })
     }
 }

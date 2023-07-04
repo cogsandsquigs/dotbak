@@ -84,22 +84,17 @@ impl Config {
     }
 
     /// Saves the config file to the given path. If the path doesn't exist, it will return an error.
-    pub fn save_config<P>(&self, path: P) -> Result<()>
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-
-        if !path.exists() {
+    pub fn save_config(&self) -> Result<()> {
+        if !self.path.exists() {
             return Err(ConfigError::ConfigNotFound {
-                path: path.to_path_buf(),
+                path: self.path.to_path_buf(),
             }
             .into());
         }
 
         let config_str = toml::to_string(self)?;
-        fs::write(path, config_str).context(WriteSnafu {
-            path: path.to_path_buf(),
+        fs::write(&self.path, config_str).context(WriteSnafu {
+            path: self.path.to_path_buf(),
         })?;
 
         Ok(())

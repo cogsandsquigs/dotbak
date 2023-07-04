@@ -50,7 +50,7 @@ fn test_save_config_file_absent() {
     };
 
     // THIS SHOULD PANIC
-    config.save_config(&config_path).unwrap();
+    config.save_config().unwrap();
 }
 
 // Test if we can save the default configuration to a file that exists.
@@ -75,7 +75,7 @@ fn test_save_config_file_exists() {
         ..Default::default()
     };
 
-    config.save_config(&config_path).unwrap();
+    config.save_config().unwrap();
 
     // The config file should still exist.
     assert!(config_path.exists());

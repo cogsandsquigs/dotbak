@@ -2,10 +2,19 @@
 
 use crate::{
     errors::{io::IoError, DotbakError},
-    git::{run_arbitrary_git_command, GitRepo},
+    git::GitRepo,
     repo_exists, repo_not_exists,
 };
 use assert_fs::{prelude::*, TempDir};
+use std::env;
+
+// Check if we are in a CI environment.
+fn in_ci() -> bool {
+    match env::var("CI") {
+        Ok(s) => s == "true",
+        _ => false,
+    }
+}
 
 /// The repository URL for the test repository.
 const TEST_GIT_REPO_URL: &str = "https://github.com/cogsandsquigs/dotbak";
@@ -318,25 +327,34 @@ fn test_set_remote() {
 /// Test pushing data to a remote repository.
 #[test]
 fn test_push() {
-    // Create a temporary directory.
-    let tmp_dir = TempDir::new().unwrap();
+    // Check if we are in a CI environment. If we are, skip the test.
+    // This is because the environment doesn't have the correct credentials.
+    // If we are not in a CI environment, run the test.
+    if !in_ci() {
+        // Create a temporary directory.
+        let tmp_dir = TempDir::new().unwrap();
 
-    // Get the path to the repo directory.
-    let repo_dir = tmp_dir.path();
+        // Get the path to the repo directory.
+        let repo_dir = tmp_dir.path();
 
-    // Initialize the repository.
-    let mut repo = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
+        // Initialize the repository.
+        let mut repo = GitRepo::clone(repo_dir, TEST_GIT_REPO_URL).unwrap();
 
-    // Check if the repository exists.
-    repo_exists!(repo_dir);
-    assert_eq!(repo.path, repo_dir);
+        // Check if the repository exists.
+        repo_exists!(repo_dir);
+        assert_eq!(repo.path, repo_dir);
 
-    // Push the changes.
-    repo.push().unwrap();
+        // Push the changes.
+        repo.push().unwrap();
 
-    // Check if the repository exists.
-    repo_exists!(repo_dir);
-    assert_eq!(repo.path(), repo_dir);
+        // Check if the repository exists.
+        repo_exists!(repo_dir);
+        assert_eq!(repo.path(), repo_dir);
+    }
+    // Otherwise, skip the test.
+    else {
+        println!("Skipping test_push because we are in a CI environment.");
+    }
 }
 
 /// Test the deletion of a repository.

@@ -10,22 +10,56 @@ pub enum IoError {
     /// A file or folder does not exist.
     #[snafu(display("File or folder '{}' does not exist", path.display()))]
     #[diagnostic(code(dotbak::error::io::not_found))]
-    NotFound { path: PathBuf },
+    NotFound {
+        /// The path to the file/folder that does not exist.
+        path: PathBuf,
+    },
 
     /// A reading error: `std::io::Error`.
     #[snafu(display("Error reading from file '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::read))]
-    Read { source: io::Error, path: PathBuf },
+    Read {
+        /// The path to the file being read from.
+        path: PathBuf,
+        /// The source io error.
+        source: io::Error,
+    },
 
     /// A writing error: `std::io::Error`.
     #[snafu(display("Error writing to file '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::write))]
-    Write { source: io::Error, path: PathBuf },
+    Write {
+        /// The path to the file being written to.
+        path: PathBuf,
+
+        /// The source io error.
+        source: io::Error,
+    },
 
     /// A file/folder creation error occured.
     #[snafu(display("Error creating file or folder '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::create))]
-    Create { source: io::Error, path: PathBuf },
+    Create {
+        /// The path to the file/folder being created.
+        path: PathBuf,
+
+        /// The source io error.
+        source: io::Error,
+    },
+
+    /// An error moving a file/folder occured.
+    #[snafu(display("Error moving file or folder '{}' to '{}': {}", from.display(), to.display(), source))]
+    #[diagnostic(code(dotbak::error::io::moving))]
+    Move {
+        /// The path to the file/folder being moved.
+        from: PathBuf,
+
+        /// The path to the destination.
+        to: PathBuf,
+
+        /// The source io error.
+        source: io::Error,
+    },
 
     /// A symlink creation error occured.
     #[snafu(display("Error creating symlink from '{}' to '{}': {}", from.display(), to.display(), source))]
@@ -44,7 +78,13 @@ pub enum IoError {
     /// A file deletion error occured.
     #[snafu(display("Error deleting file '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::delete))]
-    Delete { source: io::Error, path: PathBuf },
+    Delete {
+        /// The path to the file/folder being deleted.
+        path: PathBuf,
+
+        /// The source io error.
+        source: io::Error,
+    },
 
     /// An arbitrary command could not be run.
     #[snafu(display("Error running command '{} {}': {}", command, args.join(" "), source))]
@@ -75,12 +115,5 @@ pub enum IoError {
 
         /// The stderr from the command.
         stderr: String,
-    },
-    /// An error with `fs_extra` occured.
-    /// TODO: Make this more specific.
-    #[diagnostic(code(dotbak::error::fs))]
-    FsExtra {
-        /// The source error.
-        source: fs_extra::error::Error,
     },
 }

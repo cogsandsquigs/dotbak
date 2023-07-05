@@ -16,11 +16,11 @@
 	snafu  = "~0.7" # For error handling
 
 	# Filesystem
-	dirs     = "~5" # Getting the user's home directory
-	fs_extra = "~1" # For filesystem operations
+	dirs = "~5" # Getting the user's home directory
 
 	# Misc.
 	itertools = "~0.11" # For iterators and other things
+
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
 

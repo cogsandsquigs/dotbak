@@ -1,13 +1,16 @@
 mod tests;
 
 use crate::errors::{
-    io::{DeleteSnafu, FsExtraSnafu, SymlinkSnafu},
+    io::{DeleteSnafu, MoveSnafu, SymlinkSnafu},
     Result,
 };
-use fs_extra::dir::CopyOptions;
 use itertools::Itertools;
 use snafu::ResultExt;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    os::unix::fs as unix_fs,
+    path::{Path, PathBuf},
+};
 
 /// This structure is used to manage the files/folders that `dotbak` is tracking. This does NOT manage the git repository,
 /// but instead is responsible for organizing, maintaining, and updating the files/folders and their symlinks.
@@ -57,7 +60,7 @@ impl Files {
             let home_dir_path = self.home_dir.join(file);
 
             // Create the symlink.
-            std::os::unix::fs::symlink(&file_dir_path, &home_dir_path).context(SymlinkSnafu {
+            unix_fs::symlink(&file_dir_path, &home_dir_path).context(SymlinkSnafu {
                 from: file_dir_path,
                 to: home_dir_path,
             })?;
@@ -84,7 +87,7 @@ impl Files {
             let home_dir_path = self.home_dir.join(file);
 
             // Delete the symlink.
-            std::fs::remove_file(&home_dir_path).context(DeleteSnafu {
+            fs::remove_file(&home_dir_path).context(DeleteSnafu {
                 path: home_dir_path,
             })?;
         }
@@ -115,7 +118,14 @@ where
         .collect_vec();
 
     // Move the file/folder from `from` to `to`.
-    fs_extra::move_items(&from_paths, &to, &CopyOptions::default()).context(FsExtraSnafu)?;
+    for from_path in from_paths {
+        let to_path = to.as_ref().join(from_path.file_name().unwrap());
+
+        fs::rename(&from_path, &to_path).context(MoveSnafu {
+            from: from_path,
+            to: to_path,
+        })?;
+    }
 
     Ok(())
 }

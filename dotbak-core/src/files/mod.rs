@@ -10,11 +10,9 @@ use crate::{
 use itertools::Itertools;
 use snafu::ResultExt;
 use std::{
-    cell::RefCell,
     fs,
     os::unix::fs as unix_fs,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 
 /// This structure is used to manage the files/folders that `dotbak` is tracking. This does NOT manage the git repository,

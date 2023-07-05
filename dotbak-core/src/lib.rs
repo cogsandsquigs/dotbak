@@ -120,6 +120,7 @@ impl Dotbak {
     /// Excludes a set of files/folders from the repository. This will remove the files/folders from the repository
     /// and restore them to their original location. It also removes their paths from the configuration file in the
     /// `include` list, and adds them to the `exclude` list.
+    /// TODO: What about files that don't exist in the repository and/or user home?
     pub fn exclude<P>(&mut self, paths: &[P]) -> Result<()>
     where
         P: AsRef<Path>,
@@ -184,6 +185,7 @@ impl Dotbak {
 impl Dotbak {
     /// Initialize a new instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`. The user's home directory is assumed to be `<home>`.
+    /// TODO: Link files/folders from the repository to the home directory based on config.
     fn init_into_dirs<P1, P2>(home: P1, dotbak: P2) -> Result<Self>
     where
         P1: AsRef<Path>,
@@ -215,14 +217,18 @@ impl Dotbak {
         let repo = Repository::init(&repo_path, None)?;
 
         Ok(Dotbak {
+            // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
+            // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
+            // to `config.files` in `dotfiles`.
+            dotfiles: Files::init(home_path, repo_path, config.files.clone()),
             config,
             repo,
-            dotfiles: Files::init(home_path, repo_path),
         })
     }
 
     /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`.
+    /// TODO: Link files/folders from the repository to the home directory based on config.
     fn load_into_dirs<P1, P2>(home: P1, dotbak: P2) -> Result<Self>
     where
         P1: AsRef<Path>,
@@ -232,21 +238,25 @@ impl Dotbak {
 
         let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
         let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
+        let home_path = home.as_ref().to_path_buf();
 
         // Load the configuration file and the repository.
         let config = Config::load_config(config_path)?;
         let repo = Repository::load(&repo_path)?;
-        let home_dir = home.as_ref().to_path_buf();
 
         Ok(Dotbak {
+            // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
+            // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
+            // to `config.files` in `dotfiles`.
+            dotfiles: Files::init(home_path, repo_path, config.files.clone()),
             config,
             repo,
-            dotfiles: Files::init(home_dir, repo_path),
         })
     }
 
     /// Clone an instance of `dotbak`, cloning the repository from the given URL to `<dotbak>/dotfiles`.
     /// The user's home directory is assumed to be `<home>`.
+    /// TODO: Link files/folders from the repository to the home directory based on config.
     fn clone_into_dirs<P1, P2>(home: P1, dotbak: P2, url: &str) -> Result<Self>
     where
         P1: AsRef<Path>,
@@ -256,6 +266,7 @@ impl Dotbak {
 
         let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
         let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
+        let home_path = home.as_ref().to_path_buf();
 
         // Try to load the configuration file.
         let config = match Config::load_config(&config_path) {
@@ -275,12 +286,14 @@ impl Dotbak {
 
         // Try to load the repository.
         let repo = Repository::clone(&repo_path, url)?;
-        let home_dir = home.as_ref().to_path_buf();
 
         Ok(Dotbak {
+            // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
+            // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
+            // to `config.files` in `dotfiles`.
+            dotfiles: Files::init(home_path, repo_path, config.files.clone()),
             config,
             repo,
-            dotfiles: Files::init(home_dir, repo_path),
         })
     }
 }

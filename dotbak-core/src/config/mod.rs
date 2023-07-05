@@ -14,7 +14,7 @@ use std::{fs, path::PathBuf};
 use self::files::FilesConfig;
 
 /// The configuration that Dotbak uses to run.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// The location of the configuration file. This is a temporary value that will be overwritten
     /// later when loading in `Config::load_config`, so it is not serialized.

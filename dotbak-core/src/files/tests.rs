@@ -10,7 +10,11 @@ fn test_move_and_symlink() {
     let temp: assert_fs::TempDir = assert_fs::TempDir::new().unwrap();
     let home_dir = temp.child("home");
     let file_dir = temp.child("files");
-    let file_manager = Files::init(home_dir.path().to_owned(), file_dir.path().to_owned());
+    let file_manager = Files::init(
+        home_dir.path().to_owned(),
+        file_dir.path().to_owned(),
+        Default::default(),
+    );
 
     // Create the home directory.
     home_dir.create_dir_all().unwrap();
@@ -74,7 +78,11 @@ fn test_remove_and_restore() {
     let temp: assert_fs::TempDir = assert_fs::TempDir::new().unwrap();
     let home_dir = temp.child("home");
     let file_dir = temp.child("files");
-    let file_manager = Files::init(home_dir.path().to_owned(), file_dir.path().to_owned());
+    let file_manager = Files::init(
+        home_dir.path().to_owned(),
+        file_dir.path().to_owned(),
+        Default::default(),
+    );
 
     // Create the home directory.
     home_dir.create_dir_all().unwrap();

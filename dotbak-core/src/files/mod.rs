@@ -1,20 +1,30 @@
 mod tests;
 
-use crate::errors::{
-    io::{DeleteSnafu, MoveSnafu, SymlinkSnafu},
-    Result,
+use crate::{
+    config::files::FilesConfig,
+    errors::{
+        io::{DeleteSnafu, MoveSnafu, SymlinkSnafu},
+        Result,
+    },
 };
 use itertools::Itertools;
 use snafu::ResultExt;
 use std::{
+    cell::RefCell,
     fs,
     os::unix::fs as unix_fs,
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 /// This structure is used to manage the files/folders that `dotbak` is tracking. This does NOT manage the git repository,
 /// but instead is responsible for organizing, maintaining, and updating the files/folders and their symlinks.
 pub struct Files {
+    /// A pointer to the configuration for `dotbak`. This is an `Rc<RefCell<T>>` because we need to be able to mutate the
+    /// configuration from within the `Dotbak` struct while also having access to the configuration from within the
+    /// `Files` struct.
+    config: FilesConfig,
+
     /// The directory where all the files/folders from `file_dir` are symlinked to. i.e., this is where the user's home
     /// directory is.
     home_dir: PathBuf,
@@ -27,8 +37,12 @@ pub struct Files {
 /// Public API for `Files`.
 impl Files {
     /// Create a new instance of `Files`.
-    pub fn init(home_dir: PathBuf, file_dir: PathBuf) -> Self {
-        Self { home_dir, file_dir }
+    pub fn init(home_dir: PathBuf, file_dir: PathBuf, config: FilesConfig) -> Self {
+        Self {
+            home_dir,
+            file_dir,
+            config,
+        }
     }
 
     /// Move a set of files/folders from `home_dir` to `file_dir` and symlink it back to `home_dir`.
@@ -72,7 +86,7 @@ impl Files {
     /// Basically undoes `move_and_symlink`. This will move the files/folders from `file_dir` to `home_dir` and
     /// delete the symlinks in `home_dir`.
     ///
-    /// `files` are the paths to the file in `home_dir`. These paths must be relative to `home_dir`.
+    /// `files` are the paths to the file in `file_dir`. These paths must be relative to `file_dir`.
     ///
     /// Returns either an error or `Ok(())`.
     pub fn remove_and_restore<P>(&self, files: &[P]) -> Result<()>

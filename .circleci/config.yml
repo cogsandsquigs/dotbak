@@ -39,7 +39,7 @@ jobs:
 
             # Configure git user.name and user.email so tests can run git commands properly
             - run:
-                  name: "Configure git to work with tests"
+                name: "Configure git to work with tests"
                     command: |
                         git config --global user.name "Dotbak Testing"
                         git config --global user.email "dotbak_testing@circleci.test.dotbak"

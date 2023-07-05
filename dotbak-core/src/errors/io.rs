@@ -101,7 +101,7 @@ pub enum IoError {
     },
 
     /// An arbitrary command was run and returned an error.
-    #[snafu(display("Error running command '{} {}':\nSTDOUT:\n{}\nSTDERR:\n{}", command, args.join(" "), stdout, stderr))]
+    #[snafu(display("Error running command '{} {}':\n{}{}", command, args.join(" "), stdout, stderr))]
     #[diagnostic(code(dotbak::error::git::arbitrary_command))]
     CommandRun {
         /// The command that was run.

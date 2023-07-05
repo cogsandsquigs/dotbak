@@ -184,7 +184,7 @@ impl Repository {
         run_arbitrary_git_command(&self.path, &["add", "."])?;
 
         // Run the commit command.
-        run_arbitrary_git_command(&self.path, &["commit", "-m", message])?;
+        run_arbitrary_git_command(&self.path, &["commit", "-am", message])?;
 
         Ok(())
     }

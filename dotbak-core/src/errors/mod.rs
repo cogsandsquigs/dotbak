@@ -19,8 +19,9 @@ pub enum DotbakError {
     /// A configuration error occured.
     Config { source: ConfigError },
 
-    // /// A git error occured.
-    // Git { source: GitError },
+    /// A glob parsing error occured.
+    Glob { source: globset::Error },
+
     /// There's no home directory for this computer.
     #[snafu(display("No home directory found for this computer! This should never happen!"))]
     #[diagnostic(code(dotbak::error::no_home_dir))]
@@ -41,10 +42,3 @@ impl From<ConfigError> for DotbakError {
         Self::Config { source: err }
     }
 }
-
-// /// Convert `GitError` into a `DotbakError`
-// impl From<GitError> for DotbakError {
-//     fn from(err: GitError) -> Self {
-//         Self::Git { source: err }
-//     }
-// }

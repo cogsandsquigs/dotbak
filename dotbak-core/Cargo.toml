@@ -16,7 +16,10 @@
 	snafu  = "~0.7" # For error handling
 
 	# Filesystem
-	dirs = "~5" # Getting the user's home directory
+	# For some reason `globset` requires the serde1 feature and not the `serde` feature.
+	dirs    = "~5"                                        # Getting the user's home directory
+	globset = { version = "~0.4", features = ["serde1"] } # Globbing over files. 
+	walkdir = "~2"
 
 	# Misc.
 	itertools = "~0.11" # For iterators and other things

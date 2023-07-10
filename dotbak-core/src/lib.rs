@@ -71,11 +71,19 @@ impl Dotbak {
             .exclude
             .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
 
-        // Save the configuration file.
         self.config.save_config()?;
 
+        // // Get all the file paths that are a part of `paths`, respecting `include` and `exclude`.
+        // let file_paths = paths
+        //     .iter()
+        //     .flat_map(|p| self.dotfiles.walk_dir(p, &self.config.files))
+        //     .flatten()
+        //     .collect_vec();
+
         // Move the files/folders to the repository and symlink them to their original location.
-        self.dotfiles.move_and_symlink(paths)?;
+        for path in paths {
+            self.dotfiles.move_and_symlink(path)?;
+        }
 
         // Commit to the repository.
         // TODO: Make this message configurable.
@@ -95,6 +103,14 @@ impl Dotbak {
     where
         P: AsRef<Path>,
     {
+        // // Get all the file paths that are a part of `paths`, respecting `include` and `exclude`. Goes here because
+        // // we need to get the paths before we remove them from the `include` list.
+        // let file_paths = paths
+        //     .iter()
+        //     .flat_map(|p| self.dotfiles.walk_dir(p, &self.config.files))
+        //     .flatten()
+        //     .collect_vec();
+
         // Remove the paths from the `include` list.
         self.config
             .files
@@ -105,8 +121,10 @@ impl Dotbak {
         self.config.save_config()?;
 
         // Remove the files/folders from the repository and restore them to their original location.
-        self.dotfiles.remove_and_restore(paths)?;
 
+        for path in paths {
+            self.dotfiles.remove_and_restore(path)?;
+        }
         // Commit to the repository.
         // TODO: Make this message configurable.
         self.repo.commit(&format!(
@@ -125,6 +143,14 @@ impl Dotbak {
     where
         P: AsRef<Path>,
     {
+        // // Get all the file paths that are a part of `paths`, respecting `include` and `exclude`. Goes here because
+        // // we need to get the paths before we remove them from the `include` list.
+        // let file_paths = paths
+        //     .iter()
+        //     .flat_map(|p| self.dotfiles.walk_dir(p, &self.config.files))
+        //     .flatten()
+        //     .collect_vec();
+
         // Add the paths to the `exclude` list.
         self.config
             .files
@@ -141,7 +167,9 @@ impl Dotbak {
         self.config.save_config()?;
 
         // Remove the files/folders from the repository and restore them to their original location.
-        self.dotfiles.remove_and_restore(paths)?;
+        for path in paths {
+            self.dotfiles.remove_and_restore(path)?;
+        }
 
         // Commit to the repository.
         // TODO: Make this message configurable.
@@ -220,7 +248,7 @@ impl Dotbak {
             // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
             // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
             // to `config.files` in `dotfiles`.
-            dotfiles: Files::init(home_path, repo_path, config.files.clone()),
+            dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
         })
@@ -248,7 +276,7 @@ impl Dotbak {
             // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
             // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
             // to `config.files` in `dotfiles`.
-            dotfiles: Files::init(home_path, repo_path, config.files.clone()),
+            dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
         })
@@ -291,7 +319,7 @@ impl Dotbak {
             // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
             // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
             // to `config.files` in `dotfiles`.
-            dotfiles: Files::init(home_path, repo_path, config.files.clone()),
+            dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
         })

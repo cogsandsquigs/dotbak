@@ -16,7 +16,7 @@ pub enum IoError {
     },
 
     /// A reading error: `std::io::Error`.
-    #[snafu(display("Error reading from file '{}': {}", path.display(), source))]
+    #[snafu(display("Error reading from file or folder '{}': {}", path.display(), source))]
     #[diagnostic(code(dotbak::error::io::read))]
     Read {
         /// The path to the file being read from.

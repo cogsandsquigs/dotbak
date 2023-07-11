@@ -11,13 +11,13 @@ use errors::{config::ConfigError, DotbakError, Result};
 use files::Files;
 use git::Repository;
 use itertools::Itertools;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
-pub(crate) const CONFIG_FILE_NAME: &str = "dotbak/config.toml";
+pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
 
 /// The path to the git repository folder, relative to `XDG_DATA_HOME`.
-pub(crate) const REPO_FOLDER_NAME: &str = "dotbak/dotfiles";
+pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
@@ -36,15 +36,8 @@ impl Dotbak {
     /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
-        let mut dotbak = Self::init_into_dirs(
-            dirs::home_dir().expect("You should have a home directory!"),
-            dirs::config_dir()
-                .expect("You should have a config directory!")
-                .join(CONFIG_FILE_NAME),
-            dirs::data_local_dir()
-                .expect("You should have a data directory!")
-                .join(REPO_FOLDER_NAME),
-        )?;
+        let (home, config, repo) = get_dotbak_dirs();
+        let mut dotbak = Self::init_into_dirs(home, config, repo)?;
 
         dotbak.sync()?;
 
@@ -54,39 +47,38 @@ impl Dotbak {
     /// Clone a remote repository to the local repository. If the local repository already exists, it will be
     /// deleted and re-cloned.
     pub fn clone(url: &str) -> Result<Self> {
-        let mut dotbak = Self::clone_into_dirs(
-            dirs::home_dir().expect("You should have a home directory!"),
-            dirs::config_dir()
-                .expect("You should have a config directory!")
-                .join(CONFIG_FILE_NAME),
-            dirs::data_local_dir()
-                .expect("You should have a data directory!")
-                .join(REPO_FOLDER_NAME),
-            url,
-        )?;
+        let (home, config, repo) = get_dotbak_dirs();
+        let mut dotbak = Self::clone_into_dirs(home, config, repo, url)?;
 
         dotbak.sync()?;
 
         Ok(dotbak)
     }
 
-    /// Creates a new instance of `dotbak`. If the configuration file does not exist, an error will be returned.
-    /// If it does exist, it will be loaded.
+    /// Creates a new instance of `dotbak` from pre-defined configuration. If the configuration file does not exist,
+    /// an error will be returned. If it does exist, it will be loaded.
     pub fn load() -> Result<Self> {
-        Self::load_into_dirs(
-            dirs::home_dir().expect("You should have a home directory!"),
-            dirs::config_dir()
-                .expect("You should have a config directory!")
-                .join(CONFIG_FILE_NAME),
-            dirs::data_local_dir()
-                .expect("You should have a data directory!")
-                .join(REPO_FOLDER_NAME),
-        )
+        let (home, config, repo) = get_dotbak_dirs();
+        let mut dotbak = Self::load_into_dirs(home, config, repo)?;
+
+        dotbak.sync()?;
+
+        Ok(dotbak)
     }
 
     /// Sync the state. I.e., load all the files that are supposed to be loaded through `files.include`.
     pub fn sync(&mut self) -> Result<()> {
-        self.dotfiles.move_and_symlink(&self.config.files.include)
+        let files_to_move = self
+            .config
+            .files
+            .include
+            .iter()
+            .filter(|p| !self.dotfiles.is_managed(p))
+            .collect_vec();
+
+        self.dotfiles.move_and_symlink(&files_to_move)?;
+
+        Ok(())
     }
 
     /// Add a set of files/folders to the repository. This will move the files/folders to the repository and
@@ -286,4 +278,16 @@ impl Dotbak {
             repo,
         })
     }
+}
+
+/// Get the directories that `dotbak` uses. In order, it returns the `<home>`, `<config>`, and `<repo>` dirs.
+fn get_dotbak_dirs() -> (PathBuf, PathBuf, PathBuf) {
+    let home_dir = dirs::home_dir().expect("You should have a home directory!");
+    let dotbak_dir = home_dir.join(".dotbak");
+
+    (
+        home_dir,
+        dotbak_dir.join(CONFIG_FILE_NAME),
+        dotbak_dir.join(REPO_FOLDER_NAME),
+    )
 }

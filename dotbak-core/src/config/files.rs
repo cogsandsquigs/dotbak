@@ -1,4 +1,4 @@
-use crate::CONFIG_FILE_NAME;
+use crate::get_dotbak_dirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -26,8 +26,10 @@ impl Default for FilesConfig {
 impl FilesConfig {
     /// Returns the default for `include`.
     fn default_include() -> Vec<PathBuf> {
-        vec![dirs::config_dir()
-            .expect("You should have a config directory!")
-            .join(CONFIG_FILE_NAME)]
+        vec![get_dotbak_dirs()
+            .1
+            .strip_prefix(&get_dotbak_dirs().0)
+            .expect("This should never panic!")
+            .to_path_buf()]
     }
 }

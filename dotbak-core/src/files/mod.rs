@@ -1,7 +1,7 @@
 mod tests;
 
 use crate::errors::{
-    io::{DeleteSnafu, MoveSnafu, SymlinkSnafu},
+    io::{CreateSnafu, DeleteSnafu, MoveSnafu, SymlinkSnafu},
     Result,
 };
 use itertools::Itertools;
@@ -31,6 +31,37 @@ impl Files {
         Self { home_dir, file_dir }
     }
 
+    /// Check if a file is managed by `dotbak`.
+    ///
+    /// `file` is the path to the file in `home_dir`. This path must be relative to `home_dir`.
+    ///
+    /// Returns either `true` or `false`.
+    pub fn is_managed<P>(&self, file: P) -> bool
+    where
+        P: AsRef<Path>,
+    {
+        // Get the full path to the file in `home_dir`.
+        let home_path = self.home_dir.join(file);
+
+        // Check if the file in `home_dir` is a symlink.
+        fs::symlink_metadata(&home_path)
+            .and_then(|meta| match meta.file_type().is_symlink() {
+                // If it's a symlink, then check if it's symlinked to `file_dir`.
+                true => {
+                    // Get the path that the symlink points to.
+                    let symlink_path = fs::read_link(&home_path)?;
+
+                    // Check if the symlink points to `file_dir`.
+                    Ok(symlink_path.starts_with(&self.file_dir))
+                }
+
+                // If it's not a symlink, then we need to move the file.
+                false => Ok(false),
+            })
+            // If it's not a symlink, then we need to move the file.
+            .unwrap_or(false)
+    }
+
     /// Move a file/folder from `home_dir` to `file_dir` and symlink it back to `home_dir`. If the file is already
     /// symlinked into `file_dir`, then this will do nothing.
     ///
@@ -49,31 +80,7 @@ impl Files {
         // Filter out all the files which are already symlinked to `file_dir`.
         let files = files
             .iter()
-            .filter(|file| {
-                // Get the full path to the file in `home_dir`.
-                let home_path = self.home_dir.join(file);
-
-                // Get the full path to the file in `file_dir`.
-                let file_path = self.file_dir.join(file);
-
-                // Check if the file in `home_dir` is a symlink.
-                fs::symlink_metadata(&home_path)
-                    .and_then(|meta| match meta.file_type().is_symlink() {
-                        // If it's a symlink, then check if it's symlinked to `file_dir`.
-                        true => {
-                            // Get the path that the symlink points to.
-                            let symlink_path = fs::read_link(&home_path)?;
-
-                            // Check if the symlink points to `file_dir`.
-                            Ok(symlink_path != file_path)
-                        }
-
-                        // If it's not a symlink, then we need to move the file.
-                        false => Ok(true),
-                    })
-                    // If it's not a symlink, then we need to move the file.
-                    .unwrap_or(true)
-            })
+            .filter(|file| !self.is_managed(file))
             .collect_vec();
 
         // Move the file from `home_dir` to `file_dir`.
@@ -176,6 +183,11 @@ where
     let to_paths = files.iter().map(|file| to.as_ref().join(file));
 
     for (from_path, to_path) in from_paths.zip(to_paths) {
+        // Create any and all parent directories.
+        fs::create_dir_all(to_path.parent().unwrap()).context(CreateSnafu {
+            path: to_path.parent().unwrap().to_path_buf(),
+        })?;
+
         // Move the file.
         fs::rename(&from_path, &to_path).context(MoveSnafu {
             from: from_path,

@@ -113,7 +113,7 @@ fn test_add_files() {
 
     assert!(full_test_file_path.exists());
 
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir).unwrap();
 
     assert!(!dotbak.config.files.include.contains(&test_file));
     assert!(!expected_file.exists());
@@ -150,7 +150,7 @@ fn test_add_folder() {
     assert!(full_test_folder_path.exists());
     assert!(full_test_file_path.exists());
 
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir).unwrap();
 
     assert!(!dotbak.config.files.include.contains(&test_folder));
     assert!(!expected_folder.exists());
@@ -184,7 +184,7 @@ fn test_remove_files() {
 
     assert!(full_test_file_path.exists());
 
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir).unwrap();
 
     assert!(!dotbak.config.files.include.contains(&test_file));
     assert!(!expected_file.exists());

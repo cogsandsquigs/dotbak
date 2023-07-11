@@ -1,22 +1,10 @@
-[workspace]
-	default-members = [".", "dotbak-core"]
-	members         = [".", "dotbak-core"]
-	resolver        = "2"
-
-	# Workspace definitions to be used by all members of the workspace.
-	[workspace.package]
-		authors = ["Ian Pratt <ianjdpratt@gmail.com>"]
-		edition = "2021"
-		license = "AGPL-3.0"
-		version = "0.0.0"
-
 [package]
-	authors     = { workspace = true }
+	authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
 	description = "Manage and backup dotfiles with ease!"
-	edition     = { workspace = true }
-	license     = { workspace = true }
+	edition     = "2021"
+	license     = "AGPL-3.0"
 	name        = "dotbak"
-	version     = { workspace = true }
+	version     = "0.0.0"
 
 [dependencies]
 	# CLI parsing
@@ -24,6 +12,28 @@
 
 	# Error handling
 	miette = { version = "~5", features = ["fancy"] } # For pretty errors
+	snafu  = "~0.7"                                   # For error handling
 
-	# Dotbak core
-	dotbak-core = { path = "dotbak-core" }
+	# Configuration serialization/deserialization
+	serde = { version = "~1", features = ["derive"] }
+	toml  = "~0.7"
+
+	# Filesystem
+	dirs = "~5" # Getting the user's home directory
+
+	# Misc.
+	itertools = "~0.11" # For iterators and other things
+
+	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
+	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
+
+[dev-dependencies]
+	assert_fs = "1" # For testing filesystem operations
+
+[lib]
+	name = "dotbak"
+	path = "src/lib/mod.rs"
+
+[[bin]]
+	name = "dotbak"
+	path = "src/main.rs"

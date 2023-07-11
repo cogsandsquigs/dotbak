@@ -2,7 +2,7 @@ mod cli;
 
 use clap::Parser;
 use cli::Cli;
-use dotbak_core::Dotbak;
+use dotbak::Dotbak;
 use miette::Result;
 
 fn main() -> Result<()> {

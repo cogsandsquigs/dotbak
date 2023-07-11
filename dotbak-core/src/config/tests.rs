@@ -72,7 +72,6 @@ fn test_save_config_file_exists() {
             // The include and exclude fields are here to make sure we are not
             // loading an empty file down the line.
             include: vec!["test1".into(), "test2".into()],
-            exclude: vec!["test3".into(), "test4".into()],
         },
         ..Default::default()
     };

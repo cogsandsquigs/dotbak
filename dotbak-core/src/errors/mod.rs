@@ -21,11 +21,6 @@ pub enum DotbakError {
 
     /// A glob parsing error occured.
     Glob { source: globset::Error },
-
-    /// There's no home directory for this computer.
-    #[snafu(display("No home directory found for this computer! This should never happen!"))]
-    #[diagnostic(code(dotbak::error::no_home_dir))]
-    NoHomeDir,
 }
 
 /* Convenience implementations for converting boxed errors into dotbak errors. */

@@ -11,7 +11,7 @@ use errors::{config::ConfigError, DotbakError, Result};
 use files::Files;
 use git::Repository;
 use itertools::Itertools;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// The name of the configuration file.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
@@ -36,26 +36,57 @@ impl Dotbak {
     /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
-        Self::init_into_dirs(home_dir()?.join(".dotbak"), home_dir()?)
-    }
+        let mut dotbak = Self::init_into_dirs(
+            dirs::home_dir().expect("You should have a home directory!"),
+            dirs::config_dir().expect("You should have a config directory!"),
+            dirs::state_dir().unwrap_or_else(|| {
+                dirs::data_local_dir().expect("You should have a data directory!")
+            }),
+        )?;
 
-    /// Creates a new instance of `dotbak`. If the configuration file does not exist, an error will be returned.
-    /// If it does exist, it will be loaded.
-    pub fn load() -> Result<Self> {
-        Self::load_into_dirs(home_dir()?.join(".dotbak"), home_dir()?)
+        dotbak.sync()?;
+
+        Ok(dotbak)
     }
 
     /// Clone a remote repository to the local repository. If the local repository already exists, it will be
     /// deleted and re-cloned.
     pub fn clone(url: &str) -> Result<Self> {
-        Self::clone_into_dirs(home_dir()?.join(".dotbak"), home_dir()?, url)
+        let mut dotbak = Self::clone_into_dirs(
+            dirs::home_dir().expect("You should have a home directory!"),
+            dirs::config_dir().expect("You should have a config directory!"),
+            dirs::state_dir().unwrap_or_else(|| {
+                dirs::data_local_dir().expect("You should have a data directory!")
+            }),
+            url,
+        )?;
+
+        dotbak.sync()?;
+
+        Ok(dotbak)
+    }
+
+    /// Creates a new instance of `dotbak`. If the configuration file does not exist, an error will be returned.
+    /// If it does exist, it will be loaded.
+    pub fn load() -> Result<Self> {
+        Self::load_into_dirs(
+            dirs::home_dir().expect("You should have a home directory!"),
+            dirs::config_dir().expect("You should have a config directory!"),
+            dirs::state_dir().unwrap_or_else(|| {
+                dirs::data_local_dir().expect("You should have a data directory!")
+            }),
+        )
+    }
+
+    /// Sync the state. I.e., load all the files that are supposed to be loaded through `files.include`.
+    pub fn sync(&mut self) -> Result<()> {
+        self.dotfiles.move_and_symlink(&self.config.files.include)
     }
 
     /// Add a set of files/folders to the repository. This will move the files/folders to the repository and
     /// symlink them to their original location. It also writes their paths to the configuration file in the `include`
-    /// list, and removes them from the `exclude` list.
-    /// TODO: Make this respect the `include` and `exclude` configuration options.
-    pub fn add<P>(&mut self, paths: &[P]) -> Result<()>
+    /// list.
+    pub fn add<P>(&mut self, files: &[P]) -> Result<()>
     where
         P: AsRef<Path>,
     {
@@ -63,33 +94,18 @@ impl Dotbak {
         self.config
             .files
             .include
-            .extend(paths.iter().map(|p| p.as_ref().to_path_buf()));
-
-        // Remove the paths from the `exclude` list.
-        self.config
-            .files
-            .exclude
-            .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
+            .extend(files.iter().map(|p| p.as_ref().to_path_buf()));
 
         self.config.save_config()?;
 
-        // // Get all the file paths that are a part of `paths`, respecting `include` and `exclude`.
-        // let file_paths = paths
-        //     .iter()
-        //     .flat_map(|p| self.dotfiles.walk_dir(p, &self.config.files))
-        //     .flatten()
-        //     .collect_vec();
-
         // Move the files/folders to the repository and symlink them to their original location.
-        for path in paths {
-            self.dotfiles.move_and_symlink(path)?;
-        }
+        self.dotfiles.move_and_symlink(files)?;
 
         // Commit to the repository.
         // TODO: Make this message configurable.
         self.repo.commit(&format!(
             "Add files: {}",
-            paths.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
 
         Ok(())
@@ -98,84 +114,27 @@ impl Dotbak {
     /// Remove a set of files/folders from the repository. This will remove the files/folders from the repository
     /// and restore them to their original location. It also removes their paths from the configuration file in the
     /// `include` list.
-    /// TODO: Make this respect the `include` and `exclude` configuration options.
-    pub fn remove<P>(&mut self, paths: &[P]) -> Result<()>
+    pub fn remove<P>(&mut self, files: &[P]) -> Result<()>
     where
         P: AsRef<Path>,
     {
-        // // Get all the file paths that are a part of `paths`, respecting `include` and `exclude`. Goes here because
-        // // we need to get the paths before we remove them from the `include` list.
-        // let file_paths = paths
-        //     .iter()
-        //     .flat_map(|p| self.dotfiles.walk_dir(p, &self.config.files))
-        //     .flatten()
-        //     .collect_vec();
-
         // Remove the paths from the `include` list.
         self.config
             .files
             .include
-            .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
+            .retain(|p| !files.iter().any(|p2| p == p2.as_ref()));
 
         // Save the configuration file.
         self.config.save_config()?;
 
         // Remove the files/folders from the repository and restore them to their original location.
-
-        for path in paths {
-            self.dotfiles.remove_and_restore(path)?;
-        }
-        // Commit to the repository.
-        // TODO: Make this message configurable.
-        self.repo.commit(&format!(
-            "Remove files: {}",
-            paths.iter().map(|p| p.as_ref().display()).join(", ")
-        ))?;
-
-        Ok(())
-    }
-
-    /// Excludes a set of files/folders from the repository. This will remove the files/folders from the repository
-    /// and restore them to their original location. It also removes their paths from the configuration file in the
-    /// `include` list, and adds them to the `exclude` list.
-    /// TODO: What about files that don't exist in the repository and/or user home?
-    pub fn exclude<P>(&mut self, paths: &[P]) -> Result<()>
-    where
-        P: AsRef<Path>,
-    {
-        // // Get all the file paths that are a part of `paths`, respecting `include` and `exclude`. Goes here because
-        // // we need to get the paths before we remove them from the `include` list.
-        // let file_paths = paths
-        //     .iter()
-        //     .flat_map(|p| self.dotfiles.walk_dir(p, &self.config.files))
-        //     .flatten()
-        //     .collect_vec();
-
-        // Add the paths to the `exclude` list.
-        self.config
-            .files
-            .exclude
-            .extend(paths.iter().map(|p| p.as_ref().to_path_buf()));
-
-        // Remove the paths from the `include` list.
-        self.config
-            .files
-            .include
-            .retain(|p| !paths.iter().any(|p2| p == p2.as_ref()));
-
-        // Save the configuration file.
-        self.config.save_config()?;
-
-        // Remove the files/folders from the repository and restore them to their original location.
-        for path in paths {
-            self.dotfiles.remove_and_restore(path)?;
-        }
+        self.dotfiles.remove_and_restore(files)?;
 
         // Commit to the repository.
         // TODO: Make this message configurable.
         self.repo.commit(&format!(
             "Remove files: {}",
-            paths.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
 
         Ok(())
@@ -214,15 +173,14 @@ impl Dotbak {
     /// Initialize a new instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`. The user's home directory is assumed to be `<home>`.
     /// TODO: Link files/folders from the repository to the home directory based on config.
-    fn init_into_dirs<P1, P2>(home: P1, dotbak: P2) -> Result<Self>
+    fn init_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
+        P3: AsRef<Path>,
     {
-        let dotbak_dir = dotbak.as_ref();
-
-        let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
-        let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
+        let config_path = config.as_ref().to_path_buf();
+        let repo_path = repo.as_ref().to_path_buf();
         let home_path = home.as_ref().to_path_buf();
 
         // Try to load the configuration file.
@@ -257,15 +215,14 @@ impl Dotbak {
     /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`.
     /// TODO: Link files/folders from the repository to the home directory based on config.
-    fn load_into_dirs<P1, P2>(home: P1, dotbak: P2) -> Result<Self>
+    fn load_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
+        P3: AsRef<Path>,
     {
-        let dotbak_dir = dotbak.as_ref();
-
-        let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
-        let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
+        let config_path = config.as_ref().to_path_buf();
+        let repo_path = repo.as_ref().to_path_buf();
         let home_path = home.as_ref().to_path_buf();
 
         // Load the configuration file and the repository.
@@ -285,15 +242,14 @@ impl Dotbak {
     /// Clone an instance of `dotbak`, cloning the repository from the given URL to `<dotbak>/dotfiles`.
     /// The user's home directory is assumed to be `<home>`.
     /// TODO: Link files/folders from the repository to the home directory based on config.
-    fn clone_into_dirs<P1, P2>(home: P1, dotbak: P2, url: &str) -> Result<Self>
+    fn clone_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, url: &str) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
+        P3: AsRef<Path>,
     {
-        let dotbak_dir = dotbak.as_ref();
-
-        let config_path = dotbak_dir.join(CONFIG_FILE_NAME);
-        let repo_path = dotbak_dir.join(REPO_FOLDER_NAME);
+        let config_path = config.as_ref().to_path_buf();
+        let repo_path = repo.as_ref().to_path_buf();
         let home_path = home.as_ref().to_path_buf();
 
         // Try to load the configuration file.
@@ -324,9 +280,4 @@ impl Dotbak {
             repo,
         })
     }
-}
-
-/// Get the home directory for the user running `dotbak`.
-fn home_dir() -> Result<PathBuf> {
-    dirs::home_dir().ok_or(DotbakError::NoHomeDir)
 }

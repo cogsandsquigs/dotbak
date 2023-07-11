@@ -9,14 +9,13 @@ Manage and backup dotfiles with ease!
 
 Configuration for `dotbak` is stored in `$HOME/.dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.
 
-### `files.include` and `files.exclude`
+### `files`
 
-These tell the `dotbak` which files to include and exclude from the backup. These are specified as glob patterns. The default values are:
+These tell the `dotbak` your settings about how you want to manage files. Currently, there's only `files.include`, which is a list of all files and folders that you want to manage. For example, if you want to manage your `.dotbak/config.toml` file, you would set `files.include` to `[".dotbak/config.toml"]`. This tells `dotbak` to manage the file at `$HOME/.dotbak/config.toml`. Note that the path is relative to `$HOME`. If you want to manage a file that's not in your home directory, you can use an absolute path. For example, if you want to manage the file at `/etc/config.toml`, you would set `files.include` to `["/etc/config.toml"]`.
 
 ```toml
 [files]
 	include = [".dotbak/config.toml"]
-	exclude = [".dotbak/dotfiles/**/*"]
 ```
 
 Note that this `dotbak` configuration can also work with plain folders, such as `.config` or `.local`. For example, to backup the `.config` folder, you would set `files.include` to `[".config"]`. Under the hood, for every folder in the `include` or `exclude` fields, it's appended with `/**/*` and then turned into a glob pattern.

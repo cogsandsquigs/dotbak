@@ -143,7 +143,7 @@ fn test_add_folder() {
     let test_folder = PathBuf::from("test");
     let test_file = PathBuf::from("test/test.txt");
     let full_test_folder_path = home_dir.join(&test_folder);
-    let full_test_file_path = home_dir.join(&test_file);
+    let full_test_file_path = home_dir.join(test_file);
     let expected_folder = repo_dir.join("test");
     let expected_file = repo_dir.join("test/test.txt");
 
@@ -168,4 +168,46 @@ fn test_add_folder() {
     assert!(dotbak.config.files.include.contains(&test_folder));
     assert!(expected_folder.exists());
     assert!(expected_file.exists());
+}
+
+/// Test that we can remove files after adding them to the `Dotbak` manager.
+#[test]
+fn test_remove_files() {
+    let dir = TempDir::new().unwrap();
+    let home_dir = dir.path().join("home");
+    let config_file = dir.path().join("config.toml");
+    let repo_dir = dir.path().join("repo");
+    let result = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir);
+
+    assert!(result.is_ok());
+
+    let test_file = PathBuf::from("test.txt");
+    let full_test_file_path = home_dir.join(&test_file);
+    let expected_file = repo_dir.join("test.txt");
+
+    // Create the home directory and the test file.
+    fs::create_dir_all(&home_dir).unwrap();
+    assert!(home_dir.exists());
+    assert!(!full_test_file_path.exists());
+    fs::File::create(&full_test_file_path).unwrap();
+
+    assert!(full_test_file_path.exists());
+
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, repo_dir).unwrap();
+
+    assert!(!dotbak.config.files.include.contains(&test_file));
+    assert!(!expected_file.exists());
+
+    dotbak.add(&[&test_file]).unwrap();
+
+    // This is a symlink, so instead of checking if it exists, check if it's a symlink.
+    assert_eq!(full_test_file_path.read_link().unwrap(), expected_file);
+    assert!(dotbak.config.files.include.contains(&test_file));
+    assert!(expected_file.exists());
+
+    dotbak.remove(&[&test_file]).unwrap();
+
+    assert!(!dotbak.config.files.include.contains(&test_file));
+    assert!(!expected_file.exists());
+    assert!(full_test_file_path.exists());
 }

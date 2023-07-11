@@ -1,4 +1,4 @@
-use crate::{CONFIG_FILE_NAME, REPO_FOLDER_NAME};
+use crate::CONFIG_FILE_NAME;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 

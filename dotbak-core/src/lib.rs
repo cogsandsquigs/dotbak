@@ -13,11 +13,11 @@ use git::Repository;
 use itertools::Itertools;
 use std::path::Path;
 
-/// The name of the configuration file.
-pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
+/// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
+pub(crate) const CONFIG_FILE_NAME: &str = "dotbak/config.toml";
 
-/// The name of the git repository folder.
-pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
+/// The path to the git repository folder, relative to `XDG_DATA_HOME`.
+pub(crate) const REPO_FOLDER_NAME: &str = "dotbak/dotfiles";
 
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
@@ -38,10 +38,12 @@ impl Dotbak {
     pub fn init() -> Result<Self> {
         let mut dotbak = Self::init_into_dirs(
             dirs::home_dir().expect("You should have a home directory!"),
-            dirs::config_dir().expect("You should have a config directory!"),
-            dirs::state_dir().unwrap_or_else(|| {
-                dirs::data_local_dir().expect("You should have a data directory!")
-            }),
+            dirs::config_dir()
+                .expect("You should have a config directory!")
+                .join(CONFIG_FILE_NAME),
+            dirs::data_local_dir()
+                .expect("You should have a data directory!")
+                .join(REPO_FOLDER_NAME),
         )?;
 
         dotbak.sync()?;
@@ -54,10 +56,12 @@ impl Dotbak {
     pub fn clone(url: &str) -> Result<Self> {
         let mut dotbak = Self::clone_into_dirs(
             dirs::home_dir().expect("You should have a home directory!"),
-            dirs::config_dir().expect("You should have a config directory!"),
-            dirs::state_dir().unwrap_or_else(|| {
-                dirs::data_local_dir().expect("You should have a data directory!")
-            }),
+            dirs::config_dir()
+                .expect("You should have a config directory!")
+                .join(CONFIG_FILE_NAME),
+            dirs::data_local_dir()
+                .expect("You should have a data directory!")
+                .join(REPO_FOLDER_NAME),
             url,
         )?;
 
@@ -71,10 +75,12 @@ impl Dotbak {
     pub fn load() -> Result<Self> {
         Self::load_into_dirs(
             dirs::home_dir().expect("You should have a home directory!"),
-            dirs::config_dir().expect("You should have a config directory!"),
-            dirs::state_dir().unwrap_or_else(|| {
-                dirs::data_local_dir().expect("You should have a data directory!")
-            }),
+            dirs::config_dir()
+                .expect("You should have a config directory!")
+                .join(CONFIG_FILE_NAME),
+            dirs::data_local_dir()
+                .expect("You should have a data directory!")
+                .join(REPO_FOLDER_NAME),
         )
     }
 

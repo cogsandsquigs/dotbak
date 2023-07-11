@@ -7,7 +7,7 @@ Manage and backup dotfiles with ease!
 
 ## Configuration
 
-Configuration for `dotbak` is stored in `$HOME/.dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.
+Configuration for `dotbak` is stored in `XDG_CONFIG_DIR/dotbak/config.toml` or `$HOME/.config/dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.
 
 ### `files`
 
@@ -18,9 +18,7 @@ These tell the `dotbak` your settings about how you want to manage files. Curren
 	include = [".dotbak/config.toml"]
 ```
 
-Note that this `dotbak` configuration can also work with plain folders, such as `.config` or `.local`. For example, to backup the `.config` folder, you would set `files.include` to `[".config"]`. Under the hood, for every folder in the `include` or `exclude` fields, it's appended with `/**/*` and then turned into a glob pattern.
-
-TODO: Fix this so it works with folders. Idea: maybe append
+Note that this `dotbak` configuration can also work with plain folders, such as `.config` or `.local`. For example, to backup the `.config` folder, you would set `files.include` to `[".config"]`.
 
 ## Dotfile Management
 

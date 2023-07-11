@@ -269,13 +269,11 @@ version = "0.0.0"
 dependencies = [
  "assert_fs",
  "dirs",
- "globset",
  "itertools 0.11.0",
  "miette",
  "serde",
  "snafu",
  "toml",
- "walkdir",
 ]
 
 [[package]]
@@ -354,7 +352,6 @@ dependencies = [
  "fnv",
  "log",
  "regex",
- "serde",
 ]
 
 [[package]]

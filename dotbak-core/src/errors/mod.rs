@@ -18,9 +18,6 @@ pub enum DotbakError {
 
     /// A configuration error occured.
     Config { source: ConfigError },
-
-    /// A glob parsing error occured.
-    Glob { source: globset::Error },
 }
 
 /* Convenience implementations for converting boxed errors into dotbak errors. */

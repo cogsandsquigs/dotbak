@@ -129,63 +129,43 @@ fn test_add_files() {
     assert!(expected_file.exists());
 }
 
-// /// Test if we can exclude files/dirs from the `Dotbak` manager.
-// #[test]
-// fn test_exclude() {
-//     let dir = TempDir::new().unwrap();
-//     let home_dir = dir.path().join("home");
-//     let dotbak_dir = dir.path().join("dotbak");
+/// Test if we can implicitly add a folder's contents.
+#[test]
+fn test_add_folder() {
+    let dir = TempDir::new().unwrap();
+    let home_dir = dir.path().join("home");
+    let config_file = dir.path().join("config.toml");
+    let repo_dir = dir.path().join("repo");
+    let result = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir);
 
-//     let test_files = vec![
-//         // To include...
-//         PathBuf::from("foo"),
-//         PathBuf::from("baz/quz"),
-//         // To exclude...
-//         PathBuf::from("bar"),
-//         PathBuf::from("baz/spam"),
-//     ];
+    assert!(result.is_ok());
 
-//     let full_test_file_paths = test_files
-//         .iter()
-//         .map(|file| home_dir.join(file))
-//         .collect_vec();
+    let test_folder = PathBuf::from("test");
+    let test_file = PathBuf::from("test/test.txt");
+    let full_test_folder_path = home_dir.join(&test_folder);
+    let full_test_file_path = home_dir.join(&test_file);
+    let expected_folder = repo_dir.join("test");
+    let expected_file = repo_dir.join("test/test.txt");
 
-//     let expected_files = vec![PathBuf::from("foo"), PathBuf::from("baz/quz")];
+    // Create the home directory and the test folder and file.
+    fs::create_dir_all(&home_dir).unwrap();
+    assert!(home_dir.exists());
+    fs::create_dir_all(&full_test_folder_path).unwrap();
+    fs::File::create(&full_test_file_path).unwrap();
 
-//     // Create the home directory and the test file.
-//     fs::create_dir_all(&home_dir).unwrap();
-//     assert!(home_dir.exists());
-//     assert!(full_test_file_paths.iter().all(|path| !path.exists()));
+    assert!(full_test_folder_path.exists());
+    assert!(full_test_file_path.exists());
 
-//     for path in &full_test_file_paths {
-//         fs::create_dir_all(path.parent().unwrap()).unwrap();
-//         fs::File::create(path).unwrap();
-//     }
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, repo_dir).unwrap();
 
-//     let mut dotbak = Dotbak::init_into_dirs(&home_dir, dotbak_dir).unwrap();
+    assert!(!dotbak.config.files.include.contains(&test_folder));
+    assert!(!expected_folder.exists());
 
-//     assert!(expected_files
-//         .iter()
-//         .all(|file| !dotbak.config.files.include.contains(file)));
+    dotbak.add(&[&test_folder]).unwrap();
 
-//     dotbak.add(&test_files).unwrap();
-
-//     assert!(expected_files
-//         .iter()
-//         .all(|file| dotbak.config.files.include.contains(file)));
-
-//     // Exclude `bar` and `baz/spam`.
-//     dotbak.exclude(&test_files[2..4]).unwrap();
-
-//     assert!(expected_files
-//         .iter()
-//         .all(|file| !dotbak.config.files.include.contains(file)));
-//     assert!(test_files[2..4]
-//         .iter()
-//         .all(|file| dotbak.config.files.exclude.contains(file)));
-
-//     // // This is a symlink, so instead of checking if it exists, check if it's a symlink.
-//     // assert_eq!(full_test_file_path.read_link().unwrap(), expected_file);
-//     // assert!(dotbak.config.files.include.contains(&test_file));
-//     // assert!(expected_file.exists());
-// }
+    // This is a symlink, so instead of checking if it exists, check if it's a symlink.
+    assert_eq!(full_test_folder_path.read_link().unwrap(), expected_folder);
+    assert!(dotbak.config.files.include.contains(&test_folder));
+    assert!(expected_folder.exists());
+    assert!(expected_file.exists());
+}

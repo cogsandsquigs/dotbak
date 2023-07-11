@@ -171,14 +171,25 @@ impl Dotbak {
 
     // Deinitializes `dotbak`, removing the configuration file and the repository. This also restores all files
     // that were managed by `dotbak` to their original location.
-    // TODO: Make this work.
+    pub fn deinit(self) -> Result<()> {
+        // Restore all files that were managed by `dotbak` to their original location.
+        self.dotfiles
+            .remove_and_restore(&self.config.files.include)?;
+
+        // Remove the configuration file.
+        self.config.delete_config()?;
+
+        // Remove the repository.
+        self.repo.delete()?;
+
+        Ok(())
+    }
 }
 
 /// Private API for `Dotbak`. These are mainly used for testing.
 impl Dotbak {
     /// Initialize a new instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`. The user's home directory is assumed to be `<home>`.
-    /// TODO: Link files/folders from the repository to the home directory based on config.
     fn init_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3) -> Result<Self>
     where
         P1: AsRef<Path>,
@@ -209,9 +220,6 @@ impl Dotbak {
         let repo = Repository::init(&repo_path, None)?;
 
         Ok(Dotbak {
-            // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
-            // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
-            // to `config.files` in `dotfiles`.
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
@@ -220,7 +228,6 @@ impl Dotbak {
 
     /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`.
-    /// TODO: Link files/folders from the repository to the home directory based on config.
     fn load_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3) -> Result<Self>
     where
         P1: AsRef<Path>,
@@ -236,9 +243,6 @@ impl Dotbak {
         let repo = Repository::load(&repo_path)?;
 
         Ok(Dotbak {
-            // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
-            // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
-            // to `config.files` in `dotfiles`.
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
@@ -247,7 +251,6 @@ impl Dotbak {
 
     /// Clone an instance of `dotbak`, cloning the repository from the given URL to `<dotbak>/dotfiles`.
     /// The user's home directory is assumed to be `<home>`.
-    /// TODO: Link files/folders from the repository to the home directory based on config.
     fn clone_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, url: &str) -> Result<Self>
     where
         P1: AsRef<Path>,
@@ -278,9 +281,6 @@ impl Dotbak {
         let repo = Repository::clone(&repo_path, url)?;
 
         Ok(Dotbak {
-            // TODO: Cloning is ugly, but it's the only concise way I can think of to get around the borrow checker
-            // to allow us to have a mutable reference to `config` and `dotfiles` while also having an immutable reference
-            // to `config.files` in `dotfiles`.
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,

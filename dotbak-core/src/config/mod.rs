@@ -126,4 +126,15 @@ impl Config {
 
         Ok(config)
     }
+
+    /// Deletes the config file at the given path. If the path doesn't exist, it will return an error.
+    pub fn delete_config(self) -> Result<()> {
+        if !self.path.exists() {
+            return Err(ConfigError::ConfigNotFound { path: self.path }.into());
+        }
+
+        fs::remove_file(&self.path).context(WriteSnafu { path: self.path })?;
+
+        Ok(())
+    }
 }

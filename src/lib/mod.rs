@@ -3,6 +3,7 @@ pub mod errors;
 mod config;
 mod files;
 mod git;
+mod term;
 mod test_util;
 mod tests;
 
@@ -12,6 +13,7 @@ use files::Files;
 use git::Repository;
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
+use term::new_spinner;
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
@@ -36,10 +38,16 @@ impl Dotbak {
     /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
     pub fn init() -> Result<Self> {
+        let init_spinner = new_spinner("Initializing dotbak...");
+
         let (home, config, repo) = get_dotbak_dirs();
         let mut dotbak = Self::init_into_dirs(home, config, repo)?;
 
         dotbak.sync()?;
+
+        std::thread::sleep(std::time::Duration::from_secs(3));
+
+        init_spinner.finish_and_clear();
 
         Ok(dotbak)
     }

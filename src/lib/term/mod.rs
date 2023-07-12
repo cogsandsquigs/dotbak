@@ -3,7 +3,6 @@ use std::time::Duration;
 use indicatif::{ProgressBar, ProgressFinish, ProgressStyle};
 
 const SPINNER_FRAMES: &[&str] = &["◜", "◠", "◝", "◞", "◡", "◟"];
-// const SPINNER_FRAMES: &[&str] = &["○", "◔", "◑", "◕", "●", "◟"];
 
 const SPINNER_DURATION: Duration = Duration::from_millis(100);
 

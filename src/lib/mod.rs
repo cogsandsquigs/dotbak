@@ -45,8 +45,6 @@ impl Dotbak {
 
         dotbak.sync()?;
 
-        std::thread::sleep(std::time::Duration::from_secs(3));
-
         init_spinner.finish_and_clear();
 
         Ok(dotbak)

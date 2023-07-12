@@ -21,6 +21,10 @@
 	# Filesystem
 	dirs = "~5" # Getting the user's home directory
 
+	# Logging
+	log               = "~0.4"
+	pretty_env_logger = "~0.5"
+
 	# Misc.
 	itertools = "~0.11" # For iterators and other things
 

@@ -1,5 +1,3 @@
-#![feature(decl_macro)]
-
 pub mod errors;
 
 mod config;

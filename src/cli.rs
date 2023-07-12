@@ -17,6 +17,14 @@ pub enum Action {
         repo_url: Option<String>,
     },
 
+    /// Clones an instance of `dotbak` from the given URL to the user's home directory.
+    /// The user's home directory is assumed to be `<home>`.
+    Clone {
+        /// The URL of the repository to clone.
+        #[clap(short, long)]
+        repo_url: String,
+    },
+
     /// Deinitializes an instance of `dotbak` in the user's home directory.
     Deinit,
 }

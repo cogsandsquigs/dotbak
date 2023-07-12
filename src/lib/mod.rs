@@ -7,7 +7,6 @@ mod files;
 mod git;
 mod test_util;
 mod tests;
-mod ui;
 
 use config::Config;
 use errors::{config::ConfigError, DotbakError, Result};

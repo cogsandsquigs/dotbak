@@ -23,7 +23,6 @@
 
 	# Misc.
 	itertools = "~0.11" # For iterators and other things
-indicatif = "0.17.5"
 
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.

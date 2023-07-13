@@ -4,7 +4,7 @@
 	description = "Manage and backup dotfiles with ease!"
 	edition     = "2021"
 	homepage    = "https://github.com/cogsandsquigs/dotbak"
-	keywords    = ["cli", "dotfile-manager", "dotfiles", "linux", "macos", "unix"]
+	keywords    = ["cli", "dotfiles", "linux", "macos", "unix"]
 	license     = "AGPL-3.0"
 	name        = "dotbak"
 	readme      = "README.md"

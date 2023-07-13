@@ -4,7 +4,7 @@
 	edition     = "2021"
 	license     = "AGPL-3.0"
 	name        = "dotbak"
-	version     = "0.0.0"
+	version     = "0.1.0"
 
 [dependencies]
 	# CLI parsing

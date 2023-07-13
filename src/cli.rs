@@ -65,8 +65,9 @@ pub enum Action {
     Pull,
 
     /// Runs an arbitrary git command on the repository, as if you were in the repository directory.
+    /// TODO: this does not work with flags passed to git.
     Git {
-        /// The arguments to pass to `git`.
+        /// The arguments to pass to git.
         args: Vec<String>,
     },
 

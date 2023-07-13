@@ -38,7 +38,8 @@
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
 
 [dev-dependencies]
-	assert_fs = "1" # For testing filesystem operations
+	assert_fs = "1"  # For testing filesystem operations
+	is_ci     = "~1" # For checking if we're in CI
 
 [lib]
 	name = "dotbak"

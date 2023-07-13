@@ -6,15 +6,6 @@ use crate::{
     repo_exists, repo_not_exists,
 };
 use assert_fs::{prelude::*, TempDir};
-use std::env;
-
-// Check if we are in a CI environment.
-fn in_ci() -> bool {
-    match env::var("CI") {
-        Ok(s) => s == "true",
-        _ => false,
-    }
-}
 
 /// The repository URL for the test repository.
 const TEST_GIT_REPO_URL: &str = "https://github.com/cogsandsquigs/dotbak";
@@ -324,7 +315,7 @@ fn test_push() {
     // Check if we are in a CI environment. If we are, skip the test.
     // This is because the environment doesn't have the correct credentials.
     // If we are not in a CI environment, run the test.
-    if !in_ci() {
+    if !is_ci::uncached() {
         // Create a temporary directory.
         let tmp_dir = TempDir::new().unwrap();
 

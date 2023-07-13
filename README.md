@@ -17,7 +17,7 @@ Dotfiles are symlinked and stored in `$HOME/.dotbak/dotfiles`. This directory is
 
 ## Configuration
 
-Configuration for `dotbak` is stored in `XDG_HOME_DIR/.dotbak/config.toml` or `$HOME/.dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.
+Configuration for `dotbak` is stored in `$XDG_HOME_DIR/.dotbak/config.toml` or `$HOME/.dotbak/config.toml`. This file is created automatically when `dotbak init` is run for the first time.
 
 #### `repository_url`
 

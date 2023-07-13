@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use dotbak::{errors::Result, Dotbak};
+use itertools::Itertools;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -28,6 +29,50 @@ impl Cli {
             // Otherwise, we just load the instance.
             _ => Dotbak::load(),
         }
+    }
+
+    /// Runs the command-line interface for `dotbak` based on the user's input.
+    pub fn run(&self) -> Result<()> {
+        // Get the dotbak instance.
+        let mut dotbak = self.get_dotbak()?;
+
+        // Run the action.
+        match &self.action {
+            // Do nothing if we've already initialized.
+            Action::Init { .. } | Action::Clone { .. } => (),
+
+            // Add the files.
+            Action::Add { paths } => {
+                dotbak.add(paths)?;
+            }
+
+            // Remove the files.
+            Action::Remove { paths } => {
+                dotbak.remove(paths)?;
+            }
+
+            // Push changes to remote.
+            Action::Push => {
+                dotbak.push()?;
+            }
+
+            // Pull changes from remote.
+            Action::Pull => {
+                dotbak.pull()?;
+            }
+
+            // Run an arbitrary git command.
+            Action::Git { args } => {
+                dotbak.arbitrary_git_command(&args.iter().map(|s| s.as_str()).collect_vec())?;
+            }
+
+            // Deinitialize `dotbak`.
+            Action::Deinit => {
+                dotbak.deinit()?;
+            }
+        }
+
+        Ok(())
     }
 }
 

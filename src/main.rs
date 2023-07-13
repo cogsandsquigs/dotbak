@@ -11,10 +11,7 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    // Get the dotbak instance.
-    let dotbak = cli.get_dotbak()?;
-
-    todo!();
+    cli.run()?;
 
     Ok(())
 }

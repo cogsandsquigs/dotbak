@@ -46,6 +46,11 @@ impl Cli {
                 dotbak.add(paths)?;
             }
 
+            // Synchonize the files.
+            Action::Sync => {
+                dotbak.sync()?;
+            }
+
             // Remove the files.
             Action::Remove { paths } => {
                 dotbak.remove(paths)?;
@@ -96,6 +101,9 @@ pub enum Action {
         /// The paths to the files to add.
         paths: Vec<PathBuf>,
     },
+
+    /// Synchonizes the home directory with the repository.
+    Sync,
 
     /// Removes files from the repository.
     Remove {

@@ -1,7 +1,7 @@
 mod tests;
 
 use crate::errors::{
-    io::{CreateSnafu, DeleteSnafu, MoveSnafu, SymlinkSnafu},
+    io::{CreateSnafu, DeleteSnafu, IoError, MoveSnafu, SymlinkSnafu},
     Result,
 };
 use itertools::Itertools;
@@ -31,16 +31,17 @@ impl Files {
         Self { home_dir, file_dir }
     }
 
-    /// Check if a file is managed by `dotbak`.
+    /// Check if a file is managed by `dotbak` in the home directory. This will check if the file is a symlink and if
+    /// it's symlinked to `file_dir`.
     ///
     /// `file` is the path to the file in `home_dir`. This path must be relative to `home_dir`.
     ///
     /// Returns either `true` or `false`.
-    pub fn is_managed<P>(&self, file: P) -> bool
+    pub fn is_managed_in_home<P>(&self, file: P) -> bool
     where
         P: AsRef<Path>,
     {
-        // Get the full path to the file in `home_dir`.
+        // Get the full paths to the file in `home_dir`.
         let home_path = self.home_dir.join(file);
 
         // Check if the file in `home_dir` is a symlink.
@@ -62,6 +63,19 @@ impl Files {
             .unwrap_or(false)
     }
 
+    /// Check if a file is managed by `dotbak` and is in the `file_dir`. This will NOT check if the file is a symlink and
+    /// if it's symlinked to `file_dir`.
+    pub fn is_managed_in_repo<P>(&self, file: &P) -> bool
+    where
+        P: AsRef<Path>,
+    {
+        // Get the full paths to the file in `file_dir`.
+        let repo_path = self.file_dir.join(file);
+
+        // Check if the file in `file_dir` exists.
+        repo_path.exists()
+    }
+
     /// Move a file/folder from `home_dir` to `file_dir` and symlink it back to `home_dir`. If the file is already
     /// symlinked into `file_dir`, then this will do nothing.
     ///
@@ -80,13 +94,35 @@ impl Files {
         // Filter out all the files which are already symlinked to `file_dir`.
         let files = files
             .iter()
-            .filter(|file| !self.is_managed(file))
+            .filter(|file| !self.is_managed_in_home(file) && !self.is_managed_in_repo(file))
             .collect_vec();
 
         // Move the file from `home_dir` to `file_dir`.
         move_files(&files, &self.home_dir, &self.file_dir)?;
 
         // Now symlink them back to `home_dir`.
+        self.symlink_back_home(&files)?;
+
+        Ok(())
+    }
+
+    /// Symlinks the files back to `home_dir`. This will symlink the files from `file_dir` to `home_dir`.
+    /// If the file is already symlinked into `home_dir`, then this will do nothing.
+    ///
+    /// `files` are the paths to the file in `file_dir`. These paths must be relative to `file_dir`.
+    ///
+    /// Returns either an error or `Ok(())`.
+    pub fn symlink_back_home<P>(&self, files: &[P]) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        // Filter out all the files which are already symlinked to `file_dir`.
+        let files = files
+            .iter()
+            .filter(|file| !self.is_managed_in_home(file) && self.is_managed_in_repo(file))
+            .collect_vec();
+
+        // Symlink the files from `file_dir` to `home_dir`.
         symlink_files(&files, &self.file_dir, &self.home_dir)?;
 
         Ok(())
@@ -155,10 +191,46 @@ where
 
     for (from_path, to_path) in from_paths.zip(to_paths) {
         // Create the symlink.
-        unix_fs::symlink(&from_path, &to_path).context(SymlinkSnafu {
-            from: from_path,
-            to: to_path,
-        })?;
+        match unix_fs::symlink(&from_path, &to_path) {
+            // If ok, just return.
+            Ok(_) => {}
+
+            // If the error says that the file exists, then delete the file and try again.
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
+                fs::remove_file(&to_path).context(DeleteSnafu {
+                    path: to_path.clone(),
+                })?;
+
+                unix_fs::symlink(&from_path, &to_path).context(SymlinkSnafu {
+                    from: from_path,
+                    to: to_path,
+                })?;
+            }
+
+            // If it's any other error, then return it.
+            Err(err) => {
+                return Err(IoError::Symlink {
+                    from: from_path,
+                    to: to_path,
+                    source: err,
+                }
+                .into())
+            }
+        }
+
+        // // If the error says that the file exists, then delete the file and try again.
+        // .map_err(|err| {
+        //     if err.kind() == std::io::ErrorKind::AlreadyExists {
+        //         fs::remove_file(&to_path).context(DeleteSnafu { path: to_path })?;
+
+        //         unix_fs::symlink(&from_path, &to_path).context(SymlinkSnafu {
+        //             from: from_path,
+        //             to: to_path,
+        //         })
+        //     } else {
+        //         Err(err)
+        //     }
+        // })
     }
 
     Ok(())

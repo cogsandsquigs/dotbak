@@ -68,15 +68,9 @@ impl Dotbak {
 
     /// Sync the state. I.e., load all the files that are supposed to be loaded through `files.include`.
     pub fn sync(&mut self) -> Result<()> {
-        let files_to_move = self
-            .config
-            .files
-            .include
-            .iter()
-            .filter(|p| !self.dotfiles.is_managed(p))
-            .collect_vec();
+        let files = self.config.files.include.clone(); // TODO: Get rid of this clone!
 
-        self.dotfiles.move_and_symlink(&files_to_move)?;
+        self.sync_files(&files)?;
 
         Ok(())
     }
@@ -97,7 +91,7 @@ impl Dotbak {
         self.config.save_config()?;
 
         // Move the files/folders to the repository and symlink them to their original location.
-        self.dotfiles.move_and_symlink(files)?;
+        self.sync_files(files)?;
 
         // Commit to the repository.
         // TODO: Make this message configurable.
@@ -277,6 +271,20 @@ impl Dotbak {
             config,
             repo,
         })
+    }
+
+    /// Synchronize a select set of files.
+    fn sync_files<P>(&mut self, files: &[P]) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        // Move the files/folders to the repository and symlink them to their original location.
+        self.dotfiles.move_and_symlink(files)?;
+
+        // Synchronize the files/folders.
+        self.dotfiles.symlink_back_home(files)?;
+
+        Ok(())
     }
 }
 

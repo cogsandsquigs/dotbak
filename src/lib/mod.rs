@@ -135,6 +135,8 @@ impl Dotbak {
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
     pub fn push(&mut self) -> Result<()> {
+        self.sync()?;
+
         self.repo.push()?;
 
         Ok(())
@@ -144,6 +146,8 @@ impl Dotbak {
     /// TODO: Logging/tracing and such.
     pub fn pull(&mut self) -> Result<()> {
         self.repo.pull()?;
+
+        self.sync()?;
 
         Ok(())
     }

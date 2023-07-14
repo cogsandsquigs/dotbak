@@ -1,4 +1,3 @@
-use crate::get_dotbak_dirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -26,10 +25,6 @@ impl Default for FilesConfig {
 impl FilesConfig {
     /// Returns the default for `include`.
     fn default_include() -> Vec<PathBuf> {
-        vec![get_dotbak_dirs()
-            .1
-            .strip_prefix(&get_dotbak_dirs().0)
-            .expect("This should never panic!")
-            .to_path_buf()]
+        vec![".dotbak/config.toml".into()]
     }
 }

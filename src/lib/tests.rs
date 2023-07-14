@@ -252,7 +252,7 @@ fn test_sync_files() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, &repo_dir).unwrap();
 
     let test_file_1 = PathBuf::from("test.txt");
     let test_file_2 = PathBuf::from("test2.txt");

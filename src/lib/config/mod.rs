@@ -82,7 +82,7 @@ impl Config {
             .into());
         }
 
-        let config_str = toml::to_string(self)?;
+        let config_str = toml::to_string_pretty(self)?;
         fs::write(&self.path, config_str).context(WriteSnafu {
             path: self.path.to_path_buf(),
         })?;

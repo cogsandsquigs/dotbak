@@ -38,7 +38,7 @@
 	is_ci     = "~1" # For checking if we're in CI
 
 [lib]
-	name = "dotbak_core"
+	name = "dotbak"
 	path = "src/lib/lib.rs"
 
 [[bin]]

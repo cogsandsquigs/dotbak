@@ -1,6 +1,6 @@
 use crate::ui;
 use clap::Parser;
-use dotbak_core::{errors::Result, Dotbak};
+use dotbak::{errors::Result, Dotbak};
 use std::path::PathBuf;
 
 #[derive(Parser)]

@@ -1,14 +1,46 @@
-[workspace]
-	default-members = ["dotbak", "dotbak-core"]
-	members         = ["dotbak", "dotbak-core"]
+[package]
+	authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
+	categories  = ["command-line-utilities", "config"]
+	description = "Manage and backup dotfiles with ease!"
+	edition     = "2021"
+	homepage    = "https://github.com/cogsandsquigs/dotbak"
+	keywords    = ["cli", "dotfiles", "linux", "macos", "unix"]
+	license     = "AGPL-3.0"
+	name        = "dotbak"
+	readme      = "../README.md"
+	repository  = "https://github.com/cogsandsquigs/dotbak"
+	version     = "0.2.2"
 
-	[workspace.package]
-		authors    = ["Ian Pratt <ianjdpratt@gmail.com>"]
-		categories = ["command-line-utilities", "config"]
-		edition    = "2021"
-		homepage   = "https://github.com/cogsandsquigs/dotbak"
-		keywords   = ["cli", "dotfiles", "linux", "macos", "unix"]
-		license    = "AGPL-3.0"
-		readme     = "../README.md"
-		repository = "https://github.com/cogsandsquigs/dotbak"
-		version    = "0.2.2"
+[dependencies]
+	# CLI
+	clap      = { version = "~4", features = ["derive"] } # Parse CLI
+	indicatif = "~0.17"                                   # Progress bars
+
+	# Error handling
+	miette = { version = "~5", features = ["fancy"] } # For pretty errors
+	snafu  = "~0.7"                                   # For error handling
+
+	# Configuration serialization/deserialization
+	serde = { version = "~1", features = ["derive"] }
+	toml  = "~0.7"
+
+	# Filesystem
+	dirs = "~5" # Getting the user's home directory
+
+	# Misc.
+	itertools = "~0.11" # For iterators and other things
+
+	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
+	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
+
+[dev-dependencies]
+	assert_fs = "1"  # For testing filesystem operations
+	is_ci     = "~1" # For checking if we're in CI
+
+[lib]
+	name = "dotbak_core"
+	path = "src/lib/lib.rs"
+
+[[bin]]
+	name = "dotbak"
+	path = "src/main.rs"

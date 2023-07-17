@@ -11,7 +11,10 @@ use errors::{config::ConfigError, DotbakError, Result};
 use files::Files;
 use git::Repository;
 use itertools::Itertools;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    process::Output,
+};
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
@@ -134,29 +137,29 @@ impl Dotbak {
 
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
-    pub fn push(&mut self) -> Result<()> {
+    pub fn push(&mut self) -> Result<Output> {
         self.sync()?;
 
-        self.repo.push()?;
-
-        Ok(())
+        self.repo.push()
     }
 
     /// Pull changes from the remote.
     /// TODO: Logging/tracing and such.
-    pub fn pull(&mut self) -> Result<()> {
-        self.repo.pull()?;
+    pub fn pull(&mut self) -> Result<Output> {
+        let output = self.repo.pull()?;
 
         self.sync()?;
 
-        Ok(())
+        Ok(output)
     }
 
     /// Run an arbitrary git command on the repository.
-    pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<()> {
-        self.repo.arbitrary_command(args)?;
+    pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<Output> {
+        let output = self.repo.arbitrary_command(args)?;
 
-        Ok(())
+        self.sync()?;
+
+        Ok(output)
     }
 
     // Deinitializes `dotbak`, removing the configuration file and the repository. This also restores all files

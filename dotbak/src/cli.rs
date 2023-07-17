@@ -1,3 +1,4 @@
+use crate::ui;
 use clap::Parser;
 use dotbak_core::{errors::Result, Dotbak};
 use std::path::PathBuf;
@@ -11,21 +12,25 @@ pub struct Cli {
 }
 
 impl Cli {
-    /// Get the dotbak structure depending on the action.
-    pub fn get_dotbak(&self) -> Result<Dotbak> {
-        // Initialize the `Dotbak` instance depending on what the user wants.
+    /// Gets the action that's currently being performed, as a human-readable string.
+    pub fn action(&self) -> String {
         match &self.action {
-            // If we are initializing, then just initialize.
-            Action::Init { repo_url: None } => Dotbak::init(),
-
-            // If we're provided a repository URL, then clone it.
-            Action::Clone { repo_url }
-            | Action::Init {
-                repo_url: Some(repo_url),
-            } => Dotbak::clone(repo_url),
-
-            // Otherwise, we just load the instance.
-            _ => Dotbak::load(),
+            Action::Init { repo_url } => format!(
+                "Initializing{}...",
+                if repo_url.is_some() {
+                    format!(" with url '{}'", repo_url.as_ref().unwrap())
+                } else {
+                    String::new()
+                }
+            ),
+            Action::Clone { repo_url } => format!("Cloning with url {}...", repo_url).to_string(),
+            Action::Add { paths } => format!("Adding {} file(s)", paths.len()),
+            Action::Sync => "Synchronizing...".to_string(),
+            Action::Remove { paths } => format!("Removing {} file(s)", paths.len()),
+            Action::Push => "Pushing...".to_string(),
+            Action::Pull => "Pulling...".to_string(),
+            Action::Git { args } => format!("Running 'git {}'", args.join(" ")),
+            Action::Deinit => "Deinitializing...".to_string(),
         }
     }
 
@@ -33,6 +38,8 @@ impl Cli {
     pub fn run(&self) -> Result<()> {
         // Get the dotbak instance.
         let mut dotbak = self.get_dotbak()?;
+
+        let spinner = ui::create_spinner(self.action());
 
         // Run the action.
         match &self.action {
@@ -56,18 +63,24 @@ impl Cli {
 
             // Push changes to remote.
             Action::Push => {
-                dotbak.push()?;
+                let output = dotbak.push()?;
+
+                spinner.suspend(|| println!("{}", String::from_utf8_lossy(&output.stdout)));
             }
 
             // Pull changes from remote.
             Action::Pull => {
-                dotbak.pull()?;
+                let output = dotbak.pull()?;
+
+                spinner.suspend(|| println!("{}", String::from_utf8_lossy(&output.stdout)));
             }
 
             // Run an arbitrary git command.
             Action::Git { args } => {
-                dotbak
+                let output = dotbak
                     .arbitrary_git_command(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>())?;
+
+                spinner.suspend(|| println!("{}", String::from_utf8_lossy(&output.stdout)));
             }
 
             // Deinitialize `dotbak`.
@@ -76,7 +89,29 @@ impl Cli {
             }
         }
 
+        spinner.finish_with_message("Done!");
+
         Ok(())
+    }
+}
+
+impl Cli {
+    /// Get the dotbak structure depending on the action.
+    fn get_dotbak(&self) -> Result<Dotbak> {
+        // Initialize the `Dotbak` instance depending on what the user wants.
+        match &self.action {
+            // If we are initializing, then just initialize.
+            Action::Init { repo_url: None } => Dotbak::init(),
+
+            // If we're provided a repository URL, then clone it.
+            Action::Clone { repo_url }
+            | Action::Init {
+                repo_url: Some(repo_url),
+            } => Dotbak::clone(repo_url),
+
+            // Otherwise, we just load the instance.
+            _ => Dotbak::load(),
+        }
     }
 }
 

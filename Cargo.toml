@@ -1,6 +1,6 @@
 [workspace]
-	default-members = ["dotbak-cli", "dotbak-core"]
-	members         = ["dotbak-cli", "dotbak-core"]
+	default-members = ["dotbak", "dotbak-core"]
+	members         = ["dotbak", "dotbak-core"]
 
 	[workspace.package]
 		authors    = ["Ian Pratt <ianjdpratt@gmail.com>"]
@@ -9,6 +9,6 @@
 		homepage   = "https://github.com/cogsandsquigs/dotbak"
 		keywords   = ["cli", "dotfiles", "linux", "macos", "unix"]
 		license    = "AGPL-3.0"
-		readme     = "README.md"
+		readme     = "../README.md"
 		repository = "https://github.com/cogsandsquigs/dotbak"
 		version    = "0.2.1"

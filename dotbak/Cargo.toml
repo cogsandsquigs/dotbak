@@ -13,8 +13,9 @@
 	version    = { workspace = true }
 
 [dependencies]
-	# CLI parsing
-	clap = { version = "~4", features = ["derive"] }
+	# CLI
+	clap      = { version = "~4", features = ["derive"] } # Parse CLI
+	indicatif = "~0.17"                                   # Progress bars
 
 	# Error handling
 	miette = { version = "~5", features = ["fancy"] } # For pretty errors

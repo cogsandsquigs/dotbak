@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
 use clap::Parser;
-use dotbak::{errors::Result, Dotbak};
-use itertools::Itertools;
+use dotbak_core::{errors::Result, Dotbak};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -68,7 +66,8 @@ impl Cli {
 
             // Run an arbitrary git command.
             Action::Git { args } => {
-                dotbak.arbitrary_git_command(&args.iter().map(|s| s.as_str()).collect_vec())?;
+                dotbak
+                    .arbitrary_git_command(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>())?;
             }
 
             // Deinitialize `dotbak`.

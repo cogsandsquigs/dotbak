@@ -1,0 +1,26 @@
+[package]
+	description = "Manage and backup dotfiles with ease!"
+	name        = "dotbak"
+
+	authors    = { workspace = true }
+	categories = { workspace = true }
+	edition    = { workspace = true }
+	homepage   = { workspace = true }
+	keywords   = { workspace = true }
+	license    = { workspace = true }
+	readme     = { workspace = true }
+	repository = { workspace = true }
+	version    = { workspace = true }
+
+[dependencies]
+	# CLI parsing
+	clap = { version = "~4", features = ["derive"] }
+
+	# Error handling
+	miette = { version = "~5", features = ["fancy"] } # For pretty errors
+
+	# Core library
+	dotbak-core = { path = "../dotbak-core" }
+
+	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
+	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.

@@ -1,0 +1,35 @@
+[package]
+	description = "The core library for dotbak."
+	name        = "dotbak-core"
+
+	authors    = { workspace = true }
+	categories = { workspace = true }
+	edition    = { workspace = true }
+	homepage   = { workspace = true }
+	keywords   = { workspace = true }
+	license    = { workspace = true }
+	readme     = { workspace = true }
+	repository = { workspace = true }
+	version    = { workspace = true }
+
+[dependencies]
+	# Error handling
+	miette = "~5"   # For pretty errors
+	snafu  = "~0.7" # For error handling
+
+	# Configuration serialization/deserialization
+	serde = { version = "~1", features = ["derive"] }
+	toml  = "~0.7"
+
+	# Filesystem
+	dirs = "~5" # Getting the user's home directory
+
+	# Misc.
+	itertools = "~0.11" # For iterators and other things
+
+	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
+	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
+
+[dev-dependencies]
+	assert_fs = "1"  # For testing filesystem operations
+	is_ci     = "~1" # For checking if we're in CI

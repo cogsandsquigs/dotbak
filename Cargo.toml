@@ -1,50 +1,14 @@
-[package]
-	authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
-	categories  = ["command-line-utilities", "config"]
-	description = "Manage and backup dotfiles with ease!"
-	edition     = "2021"
-	homepage    = "https://github.com/cogsandsquigs/dotbak"
-	keywords    = ["cli", "dotfiles", "linux", "macos", "unix"]
-	license     = "AGPL-3.0"
-	name        = "dotbak"
-	readme      = "README.md"
-	repository  = "https://github.com/cogsandsquigs/dotbak"
-	version     = "0.2.1"
+[workspace]
+	default-members = ["dotbak-cli", "dotbak-core"]
+	members         = ["dotbak-cli", "dotbak-core"]
 
-[dependencies]
-	# CLI parsing
-	clap = { version = "~4", features = ["derive"] }
-
-	# Error handling
-	miette = { version = "~5", features = ["fancy"] } # For pretty errors
-	snafu  = "~0.7"                                   # For error handling
-
-	# Configuration serialization/deserialization
-	serde = { version = "~1", features = ["derive"] }
-	toml  = "~0.7"
-
-	# Filesystem
-	dirs = "~5" # Getting the user's home directory
-
-	# # Logging/UI
-	# indicatif         = "~0.17" # For progress bars
-	# log               = "~0.4"  # Logging macros
-	# pretty_env_logger = "~0.5"  # Nice log output format
-
-	# Misc.
-	itertools = "~0.11" # For iterators and other things
-
-	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
-	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.
-
-[dev-dependencies]
-	assert_fs = "1"  # For testing filesystem operations
-	is_ci     = "~1" # For checking if we're in CI
-
-[lib]
-	name = "dotbak"
-	path = "src/lib/mod.rs"
-
-[[bin]]
-	name = "dotbak"
-	path = "src/main.rs"
+	[workspace.package]
+		authors    = ["Ian Pratt <ianjdpratt@gmail.com>"]
+		categories = ["command-line-utilities", "config"]
+		edition    = "2021"
+		homepage   = "https://github.com/cogsandsquigs/dotbak"
+		keywords   = ["cli", "dotfiles", "linux", "macos", "unix"]
+		license    = "AGPL-3.0"
+		readme     = "README.md"
+		repository = "https://github.com/cogsandsquigs/dotbak"
+		version    = "0.2.1"

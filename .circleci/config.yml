@@ -57,9 +57,43 @@ jobs:
                   paths:
                       - target
 
+    cargo-publish:
+        executor: linux
+
+        steps:
+            - checkout
+
+              # Restore cached dependencies
+            - restore_cache:
+                  key: dotbak-build-cache-branch-{{ .Branch }}-arch-{{ arch }}-lockfile-{{ checksum "Cargo.lock" }}
+
+            # Test the code
+            - run:
+                  name: "Cargo publish"
+                  # TODO: parallelize tests
+                  command: |
+                      cargo publish --token $CARGO_PUBLISH_TOKEN
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
+    # Test the code on Linux
     test:
         jobs:
             - test-linux
+
+    # Publish to crates.io on tags
+    publish:
+        # Note: filters act like an OR, not an AND
+        filters:
+            tags:
+                only:
+                    - /^v.*/
+            branches:
+                ignore: /.*/
+
+        jobs:
+            - test-linux
+            - cargo-publish:
+                  requires:
+                      - test-linux

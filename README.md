@@ -6,6 +6,10 @@
 
 Manage and backup dotfiles with ease!
 
+## Why dotbak?
+
+Because everyone else did their own thing, and I wanted to do my own thing too. After all, why should _I_ trust _someone else's_ shitty CLI when I can make my own brilliant, amazingly awesome, and totally not shitty CLI?
+
 ## Installation
 
 Install with `cargo install dotbak`. This will install the `dotbak` binary to `$HOME/.cargo/bin/dotbak`. Make sure that this directory is in your `$PATH`. If you want to upgrade, run the same command.

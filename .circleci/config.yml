@@ -2,6 +2,13 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+tag-filter: &tag-filter
+    tags:
+        only:
+            - /^v.*/
+    branches:
+        ignore: /.*/
+
 executors:
     linux:
         docker:
@@ -85,15 +92,15 @@ workflows:
     # Publish to crates.io on tags
     publish:
         jobs:
-            - test-linux
+            - test-linux:
+                  # Note: filters act like an OR, not an AND
+                  filters: *tag-filter
+
             - cargo-publish:
+                  context: cargo-publish
+
                   requires:
                       - test-linux
 
                   # Note: filters act like an OR, not an AND
-                  filters:
-                      tags:
-                          only:
-                              - /^v.*/
-                      branches:
-                          ignore: /.*/
+                  filters: *tag-filter

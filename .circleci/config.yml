@@ -84,16 +84,16 @@ workflows:
 
     # Publish to crates.io on tags
     publish:
-        # Note: filters act like an OR, not an AND
-        filters:
-            tags:
-                only:
-                    - /^v.*/
-            branches:
-                ignore: /.*/
-
         jobs:
             - test-linux
             - cargo-publish:
                   requires:
                       - test-linux
+
+                  # Note: filters act like an OR, not an AND
+                  filters:
+                      tags:
+                          only:
+                              - /^v.*/
+                      branches:
+                          ignore: /.*/

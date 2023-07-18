@@ -9,11 +9,12 @@
 	name        = "dotbak"
 	readme      = "README.md"
 	repository  = "https://github.com/cogsandsquigs/dotbak"
-	version     = "0.2.2"
+	version     = "0.2.3"
 
 [dependencies]
 	# CLI
 	clap      = { version = "~4", features = ["derive"] } # Parse CLI
+	console   = "~0.15"                                   # Colored output
 	indicatif = "~0.17"                                   # Progress bars
 
 	# Error handling

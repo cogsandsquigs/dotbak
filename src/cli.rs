@@ -1,4 +1,4 @@
-use crate::ui;
+use crate::ui::Spinner;
 use clap::Parser;
 use dotbak::{errors::Result, Dotbak};
 use std::path::PathBuf;
@@ -39,7 +39,7 @@ impl Cli {
         // Get the dotbak instance.
         let mut dotbak = self.get_dotbak()?;
 
-        let spinner = ui::create_spinner(self.action());
+        let spinner = Spinner::new(self.action());
 
         // Run the action.
         match &self.action {
@@ -65,14 +65,14 @@ impl Cli {
             Action::Push => {
                 let output = dotbak.push()?;
 
-                spinner.suspend(|| println!("{}", String::from_utf8_lossy(&output.stdout)));
+                spinner.print(String::from_utf8_lossy(&output.stdout).to_string());
             }
 
             // Pull changes from remote.
             Action::Pull => {
                 let output = dotbak.pull()?;
 
-                spinner.suspend(|| println!("{}", String::from_utf8_lossy(&output.stdout)));
+                spinner.print(String::from_utf8_lossy(&output.stdout).to_string());
             }
 
             // Run an arbitrary git command.
@@ -80,7 +80,7 @@ impl Cli {
                 let output = dotbak
                     .arbitrary_git_command(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>())?;
 
-                spinner.suspend(|| println!("{}", String::from_utf8_lossy(&output.stdout)));
+                spinner.print(String::from_utf8_lossy(&output.stdout).to_string());
             }
 
             // Deinitialize `dotbak`.
@@ -89,7 +89,7 @@ impl Cli {
             }
         }
 
-        spinner.finish_with_message("Done!");
+        spinner.close();
 
         Ok(())
     }

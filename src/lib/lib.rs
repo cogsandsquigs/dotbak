@@ -42,7 +42,7 @@ impl Dotbak {
         let (home, config, repo) = get_dotbak_dirs();
         let mut dotbak = Self::init_into_dirs(home, config, repo)?;
 
-        dotbak.sync()?;
+        dotbak.sync_all_files()?;
 
         Ok(dotbak)
     }
@@ -53,7 +53,7 @@ impl Dotbak {
         let (home, config, repo) = get_dotbak_dirs();
         let mut dotbak = Self::clone_into_dirs(home, config, repo, url)?;
 
-        dotbak.sync()?;
+        dotbak.sync_all_files()?;
 
         Ok(dotbak)
     }
@@ -64,16 +64,23 @@ impl Dotbak {
         let (home, config, repo) = get_dotbak_dirs();
         let mut dotbak = Self::load_into_dirs(home, config, repo)?;
 
-        dotbak.sync()?;
+        dotbak.sync_all_files()?;
 
         Ok(dotbak)
     }
 
     /// Sync the state. I.e., load all the files that are supposed to be loaded through `files.include`.
     pub fn sync(&mut self) -> Result<()> {
-        let files = self.config.files.include.clone(); // TODO: Get rid of this clone!
+        self.sync_all_files()?;
 
-        self.sync_files(&files)?;
+        // Commit to the repository.
+        self.repo.commit("Sync files")?;
+
+        // Pull from the repository.
+        self.repo.pull()?;
+
+        // Push to the repository.
+        self.repo.push()?;
 
         Ok(())
     }
@@ -138,7 +145,7 @@ impl Dotbak {
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
     pub fn push(&mut self) -> Result<Output> {
-        self.sync()?;
+        self.sync_all_files()?;
 
         self.repo.push()
     }
@@ -148,7 +155,7 @@ impl Dotbak {
     pub fn pull(&mut self) -> Result<Output> {
         let output = self.repo.pull()?;
 
-        self.sync()?;
+        self.sync_all_files()?;
 
         Ok(output)
     }
@@ -157,7 +164,7 @@ impl Dotbak {
     pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<Output> {
         let output = self.repo.arbitrary_command(args)?;
 
-        self.sync()?;
+        self.sync_all_files()?;
 
         Ok(output)
     }
@@ -278,6 +285,13 @@ impl Dotbak {
             config,
             repo,
         })
+    }
+
+    /// Synchronize all files that are supposed to be synchronized.
+    fn sync_all_files(&mut self) -> Result<()> {
+        let files = self.config.files.include.clone(); // TODO: Get rid of this clone!
+
+        self.sync_files(&files)
     }
 
     /// Synchronize a select set of files.

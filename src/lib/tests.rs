@@ -244,10 +244,10 @@ fn test_delete_dotbak() {
     assert!(full_test_file_path.exists());
 }
 
-/// Test if we can synchronize the dotbak state. I.e., if we can add files that are not symlinked but in
+/// Test if we can synchronize all the files. I.e., if we can add files that are not symlinked but in
 /// the repository, and replace files that are already there.
 #[test]
-fn test_sync_files() {
+fn test_sync_all_files() {
     let dir: TempDir = TempDir::new().unwrap();
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
@@ -290,7 +290,7 @@ fn test_sync_files() {
     assert!(dotbak.config.files.include.contains(&test_file_2));
     assert_eq!(fs::read_to_string(&expected_file_2).unwrap(), "dummy");
 
-    dotbak.sync().unwrap();
+    dotbak.sync_all_files().unwrap();
 
     assert!(full_test_file_path_1.exists());
     assert!(full_test_file_path_2.exists());

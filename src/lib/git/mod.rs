@@ -243,16 +243,28 @@ where
             args: args.iter().map(|s| s.to_string()).collect_vec(),
         })?;
 
-    // Check if the command failed.
-    if !output.status.success() {
-        return Err(IoError::CommandRun {
-            command: "git".to_string(),
-            args: args.iter().map(|s| s.to_string()).collect_vec(),
-            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-        }
-        .into());
+    // If the command succeeded, return.
+    if output.status.success() {
+        return Ok(output);
     }
 
-    Ok(output)
+    // Make sure that the error is not something benign like "nothing to commit".
+
+    let string_stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let string_stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    match string_stdout {
+        // HACK: If it's an error, but the error is "nothing to commit", then return an empty output.
+        // TODO: This is a hack. Fix this.
+        _ if string_stdout.contains("nothing to commit") => Ok(output),
+
+        // Otherwise, return the error.
+        _ => Err(IoError::CommandRun {
+            command: "git".to_string(),
+            args: args.iter().map(|s| s.to_string()).collect_vec(),
+            stdout: string_stdout,
+            stderr: string_stderr,
+        }
+        .into()),
+    }
 }

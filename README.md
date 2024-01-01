@@ -46,3 +46,4 @@ Note that this `dotbak` configuration can also work with plain folders, such as 
 ## TODO:
 
 -   [ ] Stream stderr/out of arbitrary commands to the terminal when running.
+-   [ ] Run `dotbak sync` in the background as a daemon (on login/every x minutes).

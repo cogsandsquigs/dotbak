@@ -42,3 +42,7 @@ Currently, there's only `files.include`, which is a list of all files and folder
 ```
 
 Note that this `dotbak` configuration can also work with plain folders, such as `.config` or `.local`. For example, to backup the `.config` folder, you would set `files.include` to `[".config"]`, or run `dotbak add .config` which automatically adds the folder to the `files.include` list.
+
+## TODO:
+
+-   [ ] Stream stderr/out of arbitrary commands to the terminal when running.

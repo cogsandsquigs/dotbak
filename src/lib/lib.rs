@@ -208,9 +208,9 @@ impl Dotbak {
 
             // If the configuration file does not exist, create it.
             // TODO: log that the configuration file was created, not loaded.
-            Err(DotbakError::Config {
-                source: ConfigError::ConfigNotFound { .. },
-            }) => Config::create_config(config_path)?,
+            Err(DotbakError::Config(ConfigError::ConfigNotFound { .. })) => {
+                Config::create_config(config_path)?
+            }
 
             // If the error is not a `ConfigNotFound` error, return it.
             Err(err) => return Err(err),
@@ -269,9 +269,9 @@ impl Dotbak {
 
             // If the configuration file does not exist, create it.
             // TODO: log that the configuration file was created, not loaded.
-            Err(DotbakError::Config {
-                source: ConfigError::ConfigNotFound { .. },
-            }) => Config::create_config(config_path)?,
+            Err(DotbakError::Config(ConfigError::ConfigNotFound { .. })) => {
+                Config::create_config(config_path)?
+            }
 
             // If the error is not a `ConfigNotFound` error, return it.
             Err(err) => return Err(err),

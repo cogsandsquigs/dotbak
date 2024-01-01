@@ -1,11 +1,7 @@
 mod tests;
 
-use crate::errors::{
-    io::{CommandIOSnafu, CreateSnafu, DeleteSnafu, IoError},
-    DotbakError, Result,
-};
+use crate::errors::{io::IoError, DotbakError, Result};
 use itertools::Itertools;
-use snafu::ResultExt;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -44,7 +40,8 @@ impl Repository {
     {
         // Create the directory if it does not exist.
         if !path.as_ref().exists() {
-            fs::create_dir_all(path.as_ref()).context(CreateSnafu {
+            fs::create_dir_all(path.as_ref()).map_err(|err| IoError::Create {
+                source: err,
                 path: path.as_ref().to_path_buf(),
             })?;
         }
@@ -87,9 +84,9 @@ impl Repository {
             Ok(output) => Ok(output),
 
             // If the remote could not be found, create it.
-            Err(DotbakError::Io {
-                source: IoError::CommandRun { stderr, .. },
-            }) if stderr == *"error: No such remote 'origin'\n" => {
+            Err(DotbakError::Io(IoError::CommandRun { stderr, .. }))
+                if stderr == *"error: No such remote 'origin'\n" =>
+            {
                 // Run the remote command.
                 run_arbitrary_git_command(&self.path, &["remote", "add", REMOTE_NAME, &url])?;
                 run_arbitrary_git_command(&self.path, &["remote", "set-url", REMOTE_NAME, &url])
@@ -150,7 +147,8 @@ impl Repository {
 
         // Create the directory if it does not exist.
         if !path.exists() {
-            fs::create_dir_all(path).context(CreateSnafu {
+            fs::create_dir_all(path).map_err(|err| IoError::Create {
+                source: err,
                 path: path.to_path_buf(),
             })?;
         }
@@ -207,7 +205,10 @@ impl Repository {
     /// TODO: Move symlinked files to their original location.
     pub fn delete(self) -> Result<()> {
         // Delete the repository using `fs::remove_dir_all`.
-        fs::remove_dir_all(&self.path).context(DeleteSnafu { path: self.path })?;
+        fs::remove_dir_all(&self.path).map_err(|err| IoError::Delete {
+            source: err,
+            path: self.path,
+        })?;
 
         Ok(())
     }
@@ -238,7 +239,8 @@ where
         .args(args)
         .current_dir(path)
         .output()
-        .context(CommandIOSnafu {
+        .map_err(|err| IoError::CommandIO {
+            source: err,
             command: "git".to_string(),
             args: args.iter().map(|s| s.to_string()).collect_vec(),
         })?;

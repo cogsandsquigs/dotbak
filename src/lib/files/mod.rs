@@ -1,11 +1,7 @@
 mod tests;
 
-use crate::errors::{
-    io::{CreateSnafu, DeleteSnafu, IoError, MoveSnafu, SymlinkSnafu},
-    Result,
-};
+use crate::errors::{io::IoError, Result};
 use itertools::Itertools;
-use snafu::ResultExt;
 use std::{
     fs,
     os::unix::fs as unix_fs,
@@ -165,7 +161,7 @@ where
 
     for path in paths {
         // Delete the file.
-        fs::remove_file(&path).context(DeleteSnafu { path })?;
+        fs::remove_file(&path).map_err(|err| IoError::Delete { source: err, path })?;
     }
 
     Ok(())
@@ -197,13 +193,15 @@ where
 
             // If the error says that the file exists, then delete the file and try again.
             Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
-                fs::remove_file(&to_path).context(DeleteSnafu {
+                fs::remove_file(&to_path).map_err(|err| IoError::Delete {
+                    source: err,
                     path: to_path.clone(),
                 })?;
 
-                unix_fs::symlink(&from_path, &to_path).context(SymlinkSnafu {
-                    from: from_path,
+                unix_fs::symlink(&from_path, &to_path).map_err(|err| IoError::Symlink {
+                    source: err,
                     to: to_path,
+                    from: from_path,
                 })?;
             }
 
@@ -256,14 +254,15 @@ where
 
     for (from_path, to_path) in from_paths.zip(to_paths) {
         // Create any and all parent directories.
-        fs::create_dir_all(to_path.parent().unwrap()).context(CreateSnafu {
+        fs::create_dir_all(to_path.parent().unwrap()).map_err(|err| IoError::Create {
+            source: err,
             path: to_path.parent().unwrap().to_path_buf(),
         })?;
 
         // Move the file.
-        fs::rename(&from_path, &to_path).context(MoveSnafu {
-            from: from_path,
-            to: to_path,
+        fs::rename(&from_path, &to_path).map_err(|err| IoError::Create {
+            source: err,
+            path: to_path.parent().unwrap().to_path_buf(),
         })?;
     }
 

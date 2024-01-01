@@ -1,13 +1,8 @@
 pub mod files;
 mod tests;
 
-use crate::errors::{
-    config::ConfigError,
-    io::{CreateSnafu, ReadSnafu, WriteSnafu},
-    Result,
-};
+use crate::errors::{config::ConfigError, io::IoError, Result};
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 use std::path::Path;
 use std::{fs, path::PathBuf};
 
@@ -61,7 +56,8 @@ impl Config {
             .into());
         }
 
-        let config_str = fs::read_to_string(path).context(ReadSnafu {
+        let config_str = fs::read_to_string(path).map_err(|err| IoError::Read {
+            source: err,
             path: path.to_path_buf(),
         })?;
 
@@ -83,7 +79,8 @@ impl Config {
         }
 
         let config_str = toml::to_string_pretty(self)?;
-        fs::write(&self.path, config_str).context(WriteSnafu {
+        fs::write(&self.path, config_str).map_err(|err| IoError::Write {
+            source: err,
             path: self.path.to_path_buf(),
         })?;
 
@@ -104,12 +101,14 @@ impl Config {
             .into());
         } else {
             // Create the file if it doesn't exist.
-            fs::create_dir_all(path.parent().unwrap()).context(CreateSnafu {
+            fs::create_dir_all(path.parent().unwrap()).map_err(|err| IoError::Create {
+                source: err,
                 path: path.to_path_buf(),
             })?;
 
             // Create the file.
-            fs::File::create(path).context(CreateSnafu {
+            fs::File::create(path).map_err(|err| IoError::Create {
+                source: err,
                 path: path.to_path_buf(),
             })?;
         }
@@ -117,7 +116,8 @@ impl Config {
         let mut config = Config::default();
         let config_str = toml::to_string(&config)?;
 
-        fs::write(path, config_str).context(WriteSnafu {
+        fs::write(path, config_str).map_err(|err| IoError::Write {
+            source: err,
             path: path.to_path_buf(),
         })?;
 
@@ -133,7 +133,10 @@ impl Config {
             return Err(ConfigError::ConfigNotFound { path: self.path }.into());
         }
 
-        fs::remove_file(&self.path).context(WriteSnafu { path: self.path })?;
+        fs::remove_file(&self.path).map_err(|err| IoError::Write {
+            source: err,
+            path: self.path,
+        })?;
 
         Ok(())
     }

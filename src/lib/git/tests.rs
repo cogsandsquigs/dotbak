@@ -114,9 +114,7 @@ fn test_load_path_nonexistent() {
     // Check that it is an IO error.
     assert!(matches!(
         result,
-        Err(DotbakError::Io {
-            source: IoError::NotFound { .. }
-        })
+        Err(DotbakError::Io(IoError::NotFound { .. }))
     ));
 }
 
@@ -180,9 +178,7 @@ fn test_clone_exists_already() {
     // Check that it is a git clone error.
     assert!(matches!(
         result,
-        Err(DotbakError::Io {
-            source: IoError::CommandRun { stderr, .. }
-        }) if stderr.contains("already exists and is not an empty directory")
+        Err(DotbakError::Io ( IoError::CommandRun { stderr, .. })) if stderr.contains("already exists and is not an empty directory")
     ));
 }
 

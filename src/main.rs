@@ -1,4 +1,11 @@
 mod cli;
+mod config;
+mod dotbak;
+mod errors;
+mod files;
+mod git;
+mod test_util;
+mod tests;
 mod ui;
 
 use clap::Parser;

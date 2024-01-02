@@ -38,10 +38,6 @@
 	assert_fs = "^1" # For testing filesystem operations
 	is_ci     = "^1" # For checking if we're in CI
 
-[lib]
-	name = "dotbak"
-	path = "src/lib/lib.rs"
-
 [[bin]]
 	name = "dotbak"
 	path = "src/main.rs"

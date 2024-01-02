@@ -1,6 +1,10 @@
 #![cfg(test)]
 
 use super::*;
+use crate::{
+    dotbak::Dotbak,
+    errors::{config::ConfigError, DotbakError},
+};
 use assert_fs::TempDir;
 use std::{fs, path::PathBuf};
 
@@ -14,7 +18,7 @@ fn test_init_dotbak() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let result = Dotbak::init_into_dirs(home_dir, &config_file, &repo_dir);
+    let result = Dotbak::init_into_dirs(home_dir, &config_file, &repo_dir, true);
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap().repo.path(), repo_dir);
@@ -29,7 +33,7 @@ fn test_init_dotbak_no_dir() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let result = Dotbak::init_into_dirs(home_dir, &config_file, &repo_dir);
+    let result = Dotbak::init_into_dirs(home_dir, &config_file, &repo_dir, true);
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap().repo.path(), repo_dir);
@@ -45,14 +49,14 @@ fn test_load_dotbak() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let result = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir);
+    let result = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir, true);
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap().repo.path(), repo_dir);
     assert!(config_file.exists());
     repo_exists!(repo_dir);
 
-    let result = Dotbak::load_into_dirs(home_dir, &config_file, &repo_dir);
+    let result = Dotbak::load_into_dirs(home_dir, &config_file, &repo_dir, true);
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap().repo.path(), repo_dir);
@@ -67,7 +71,7 @@ fn test_load_dotbak_no_dir() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let result = Dotbak::load_into_dirs(home_dir, config_file, repo_dir);
+    let result = Dotbak::load_into_dirs(home_dir, config_file, repo_dir, true);
 
     assert!(result.is_err());
     assert!(matches!(
@@ -83,7 +87,8 @@ fn test_clone_dotbak() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let result = Dotbak::clone_into_dirs(home_dir, &config_file, &repo_dir, TEST_GIT_REPO_URL);
+    let result =
+        Dotbak::clone_into_dirs(home_dir, &config_file, &repo_dir, TEST_GIT_REPO_URL, true);
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap().repo.path(), repo_dir);
@@ -111,7 +116,7 @@ fn test_add_files() {
 
     assert!(full_test_file_path.exists());
 
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir, true).unwrap();
 
     assert!(!dotbak.config.files.include.contains(&test_file));
     assert!(!expected_file.exists());
@@ -148,7 +153,7 @@ fn test_add_folder() {
     assert!(full_test_folder_path.exists());
     assert!(full_test_file_path.exists());
 
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir, true).unwrap();
 
     assert!(!dotbak.config.files.include.contains(&test_folder));
     assert!(!expected_folder.exists());
@@ -182,7 +187,7 @@ fn test_remove_files() {
 
     assert!(full_test_file_path.exists());
 
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, repo_dir, true).unwrap();
 
     assert!(!dotbak.config.files.include.contains(&test_file));
     assert!(!expected_file.exists());
@@ -208,7 +213,7 @@ fn test_delete_dotbak() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, &config_file, &repo_dir, true).unwrap();
 
     // Clear the include list (because it links out of the test directory)
     dotbak.config.files.include = vec![];
@@ -250,7 +255,7 @@ fn test_sync_all_files() {
     let home_dir = dir.path().join("home");
     let config_file = dir.path().join("config.toml");
     let repo_dir = dir.path().join("repo");
-    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, &repo_dir).unwrap();
+    let mut dotbak = Dotbak::init_into_dirs(&home_dir, config_file, &repo_dir, true).unwrap();
 
     let test_file_1 = PathBuf::from("test.txt");
     let test_file_2 = PathBuf::from("test2.txt");

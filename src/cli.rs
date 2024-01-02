@@ -1,7 +1,8 @@
-use crate::ui::Spinner;
+use crate::{dotbak::Dotbak, errors::Result};
 use clap::Parser;
-use dotbak::{errors::Result, Dotbak};
+use indicatif::HumanDuration;
 use std::path::PathBuf;
+use std::time::Instant;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -9,6 +10,11 @@ pub struct Cli {
     /// The action to perform
     #[clap(subcommand)]
     pub action: Action,
+
+    /// [ALPHA] Whether to be verbose with logging or not. Currently does nothing.
+    /// Ex: printing the output of git commands.
+    #[clap(short, long)]
+    pub verbose: bool,
 }
 
 impl Cli {
@@ -23,14 +29,14 @@ impl Cli {
                     String::new()
                 }
             ),
-            Action::Clone { repo_url } => format!("Cloning with url {}...", repo_url).to_string(),
+            Action::Clone { repo_url } => format!("Cloning with url {}", repo_url).to_string(),
             Action::Add { paths } => format!("Adding {} file(s)", paths.len()),
-            Action::Sync => "Synchronizing...".to_string(),
+            Action::Sync => "Synchronizing".to_string(),
             Action::Remove { paths } => format!("Removing {} file(s)", paths.len()),
-            Action::Push => "Pushing...".to_string(),
-            Action::Pull => "Pulling...".to_string(),
+            Action::Push => "Pushing".to_string(),
+            Action::Pull => "Pulling".to_string(),
             Action::Git { args } => format!("Running 'git {}'", args.join(" ")),
-            Action::Deinit => "Deinitializing...".to_string(),
+            Action::Deinit => "Deinitializing".to_string(),
         }
     }
 
@@ -38,8 +44,9 @@ impl Cli {
     pub fn run(&self) -> Result<()> {
         // Get the dotbak instance.
         let mut dotbak = self.get_dotbak()?;
+        let started = Instant::now();
 
-        let spinner = Spinner::new(self.action());
+        println!("⏳ {}...", self.action());
 
         // Run the action.
         match &self.action {
@@ -63,24 +70,18 @@ impl Cli {
 
             // Push changes to remote.
             Action::Push => {
-                let output = dotbak.push()?;
-
-                spinner.print(String::from_utf8_lossy(&output.stdout).to_string());
+                dotbak.push()?;
             }
 
             // Pull changes from remote.
             Action::Pull => {
-                let output = dotbak.pull()?;
-
-                spinner.print(String::from_utf8_lossy(&output.stdout).to_string());
+                dotbak.pull()?;
             }
 
             // Run an arbitrary git command.
             Action::Git { args } => {
-                let output = dotbak
+                dotbak
                     .arbitrary_git_command(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>())?;
-
-                spinner.print(String::from_utf8_lossy(&output.stdout).to_string());
             }
 
             // Deinitialize `dotbak`.
@@ -89,7 +90,12 @@ impl Cli {
             }
         }
 
-        spinner.close();
+        println!(
+            "✨ Done! {}",
+            console::style(format!("[{}]", HumanDuration(started.elapsed())))
+                .bold()
+                .dim(),
+        );
 
         Ok(())
     }
@@ -101,16 +107,16 @@ impl Cli {
         // Initialize the `Dotbak` instance depending on what the user wants.
         match &self.action {
             // If we are initializing, then just initialize.
-            Action::Init { repo_url: None } => Dotbak::init(),
+            Action::Init { repo_url: None } => Dotbak::init(self.verbose),
 
             // If we're provided a repository URL, then clone it.
             Action::Clone { repo_url }
             | Action::Init {
                 repo_url: Some(repo_url),
-            } => Dotbak::clone(repo_url),
+            } => Dotbak::clone(repo_url, self.verbose),
 
             // Otherwise, we just load the instance.
-            _ => Dotbak::load(),
+            _ => Dotbak::load(self.verbose),
         }
     }
 }

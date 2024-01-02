@@ -1,20 +1,12 @@
-pub mod errors;
-
-mod config;
-mod files;
-mod git;
-mod test_util;
-mod tests;
-
-use config::Config;
-use errors::{config::ConfigError, DotbakError, Result};
-use files::Files;
-use git::Repository;
-use itertools::Itertools;
-use std::{
-    path::{Path, PathBuf},
-    process::Output,
+use crate::{
+    config::Config,
+    errors::{config::ConfigError, DotbakError, Result},
+    files::Files,
+    git::Repository,
+    ui::Spinner,
 };
+use itertools::Itertools;
+use std::path::{Path, PathBuf};
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
@@ -25,22 +17,25 @@ pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
     /// The configuration for `dotbak`.
-    config: Config,
+    pub(crate) config: Config,
+
+    /// Whether we are verbose or not with logging. Currently does nothing.
+    pub(crate) verbose: bool,
 
     /// The repository for `dotbak`.
-    repo: Repository,
+    pub(crate) repo: Repository,
 
     /// The dotfiles that are being managed by `dotbak`.
-    dotfiles: Files,
+    pub(crate) dotfiles: Files,
 }
 
 /// Public API for `Dotbak`.
 impl Dotbak {
     /// Create a new instance of `dotbak`. If the configuration file does not exist, it will be created.
     /// If it does exist, it will be loaded.
-    pub fn init() -> Result<Self> {
+    pub fn init(verbose: bool) -> Result<Self> {
         let (home, config, repo) = get_dotbak_dirs();
-        let mut dotbak = Self::init_into_dirs(home, config, repo)?;
+        let mut dotbak = Self::init_into_dirs(home, config, repo, verbose)?;
 
         dotbak.sync_all_files()?;
 
@@ -49,9 +44,9 @@ impl Dotbak {
 
     /// Clone a remote repository to the local repository. If the local repository already exists, it will be
     /// deleted and re-cloned.
-    pub fn clone(url: &str) -> Result<Self> {
+    pub fn clone(url: &str, verbose: bool) -> Result<Self> {
         let (home, config, repo) = get_dotbak_dirs();
-        let mut dotbak = Self::clone_into_dirs(home, config, repo, url)?;
+        let mut dotbak = Self::clone_into_dirs(home, config, repo, url, verbose)?;
 
         dotbak.sync_all_files()?;
 
@@ -60,9 +55,9 @@ impl Dotbak {
 
     /// Creates a new instance of `dotbak` from pre-defined configuration. If the configuration file does not exist,
     /// an error will be returned. If it does exist, it will be loaded.
-    pub fn load() -> Result<Self> {
+    pub fn load(verbose: bool) -> Result<Self> {
         let (home, config, repo) = get_dotbak_dirs();
-        let mut dotbak = Self::load_into_dirs(home, config, repo)?;
+        let mut dotbak = Self::load_into_dirs(home, config, repo, verbose)?;
 
         dotbak.sync_all_files()?;
 
@@ -74,13 +69,24 @@ impl Dotbak {
         self.sync_all_files()?;
 
         // Commit to the repository.
+        let spinner = spinner_progress("Commiting changes", 1, 4);
         self.repo.commit("Sync files")?;
+        spinner.close();
 
         // Pull from the repository.
+        let spinner = spinner_progress("Pulling changes", 2, 4);
         self.repo.pull()?;
+        spinner.close();
 
         // Push to the repository.
+        let spinner = spinner_progress("Pushing changes", 3, 4);
         self.repo.push()?;
+        spinner.close();
+
+        // Sync all files again.
+        let spinner = spinner_progress("Synching state", 4, 4);
+        self.sync_all_files()?;
+        spinner.close();
 
         Ok(())
     }
@@ -93,22 +99,28 @@ impl Dotbak {
         P: AsRef<Path>,
     {
         // Add the paths to the `include` list.
+        let spinner = spinner_progress("Updating configuration", 1, 3);
         self.config
             .files
             .include
             .extend(files.iter().map(|p| p.as_ref().to_path_buf()));
 
         self.config.save_config()?;
+        spinner.close();
 
         // Move the files/folders to the repository and symlink them to their original location.
+        let spinner = spinner_progress("Synching state", 2, 3);
         self.sync_files(files)?;
+        spinner.close();
 
         // Commit to the repository.
         // TODO: Make this message configurable.
+        let spinner = spinner_progress("Commiting changes", 3, 3);
         self.repo.commit(&format!(
             "Add files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
+        spinner.close();
 
         Ok(())
     }
@@ -121,6 +133,7 @@ impl Dotbak {
         P: AsRef<Path>,
     {
         // Remove the paths from the `include` list.
+        let spinner = spinner_progress("Updating configuration", 1, 3);
         self.config
             .files
             .include
@@ -128,59 +141,84 @@ impl Dotbak {
 
         // Save the configuration file.
         self.config.save_config()?;
+        spinner.close();
 
         // Remove the files/folders from the repository and restore them to their original location.
+        let spinner = spinner_progress("Removing files", 2, 3);
         self.dotfiles.remove_and_restore(files)?;
+        spinner.close();
 
         // Commit to the repository.
         // TODO: Make this message configurable.
+        let spinner = spinner_progress("Commiting changes", 3, 3);
         self.repo.commit(&format!(
             "Remove files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
+        spinner.close();
 
         Ok(())
     }
 
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
-    pub fn push(&mut self) -> Result<Output> {
+    pub fn push(&mut self) -> Result<()> {
+        let spinner = spinner_progress("Synching state", 1, 2);
         self.sync_all_files()?;
+        spinner.close();
 
-        self.repo.push()
+        let spinner = spinner_progress("Pushing changes", 1, 2);
+        self.repo.push()?;
+        spinner.close();
+
+        Ok(())
     }
 
     /// Pull changes from the remote.
     /// TODO: Logging/tracing and such.
-    pub fn pull(&mut self) -> Result<Output> {
-        let output = self.repo.pull()?;
+    pub fn pull(&mut self) -> Result<()> {
+        let spinner = spinner_progress("Pulling changes", 1, 2);
+        self.repo.pull()?;
+        spinner.close();
 
+        let spinner = spinner_progress("Synching state", 2, 2);
         self.sync_all_files()?;
+        spinner.close();
 
-        Ok(output)
+        Ok(())
     }
 
     /// Run an arbitrary git command on the repository.
-    pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<Output> {
-        let output = self.repo.arbitrary_command(args)?;
+    pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<()> {
+        let spinner = spinner_progress(&format!("Running 'git {}'", args.join(" ")), 1, 2);
+        self.repo.arbitrary_command(args)?;
+        spinner.close();
 
+        let spinner = spinner_progress("Synching state", 2, 2);
         self.sync_all_files()?;
+        spinner.close();
 
-        Ok(output)
+        Ok(())
     }
 
     // Deinitializes `dotbak`, removing the configuration file and the repository. This also restores all files
     // that were managed by `dotbak` to their original location.
     pub fn deinit(self) -> Result<()> {
         // Restore all files that were managed by `dotbak` to their original location.
+        let spinner = spinner_progress("Restoring original files", 1, 3);
         self.dotfiles
             .remove_and_restore(&self.config.files.include)?;
+        spinner.close();
 
         // Remove the configuration file.
+        let spinner = spinner_progress("Removing configuration", 2, 3);
         self.config.delete_config()?;
+        spinner.close();
 
         // Remove the repository.
+        let spinner = spinner_progress("Removing repository", 3, 3);
         self.repo.delete()?;
+        spinner.close();
 
         Ok(())
     }
@@ -190,7 +228,12 @@ impl Dotbak {
 impl Dotbak {
     /// Initialize a new instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`. The user's home directory is assumed to be `<home>`.
-    fn init_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3) -> Result<Self>
+    pub(crate) fn init_into_dirs<P1, P2, P3>(
+        home: P1,
+        config: P2,
+        repo: P3,
+        verbose: bool,
+    ) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
@@ -223,12 +266,18 @@ impl Dotbak {
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
+            verbose,
         })
     }
 
     /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`.
-    fn load_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3) -> Result<Self>
+    pub(crate) fn load_into_dirs<P1, P2, P3>(
+        home: P1,
+        config: P2,
+        repo: P3,
+        verbose: bool,
+    ) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
@@ -246,12 +295,19 @@ impl Dotbak {
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
+            verbose,
         })
     }
 
     /// Clone an instance of `dotbak`, cloning the repository from the given URL to `<dotbak>/dotfiles`.
     /// The user's home directory is assumed to be `<home>`.
-    fn clone_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, url: &str) -> Result<Self>
+    pub(crate) fn clone_into_dirs<P1, P2, P3>(
+        home: P1,
+        config: P2,
+        repo: P3,
+        url: &str,
+        verbose: bool,
+    ) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
@@ -284,18 +340,19 @@ impl Dotbak {
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
+            verbose,
         })
     }
 
     /// Synchronize all files that are supposed to be synchronized.
-    fn sync_all_files(&mut self) -> Result<()> {
+    pub(crate) fn sync_all_files(&mut self) -> Result<()> {
         let files = self.config.files.include.clone(); // TODO: Get rid of this clone!
 
         self.sync_files(&files)
     }
 
     /// Synchronize a select set of files.
-    fn sync_files<P>(&mut self, files: &[P]) -> Result<()>
+    pub(crate) fn sync_files<P>(&mut self, files: &[P]) -> Result<()>
     where
         P: AsRef<Path>,
     {
@@ -319,4 +376,9 @@ fn get_dotbak_dirs() -> (PathBuf, PathBuf, PathBuf) {
         dotbak_dir.join(CONFIG_FILE_NAME),
         dotbak_dir.join(REPO_FOLDER_NAME),
     )
+}
+
+/// Print out a message with a [x/n] counter before it
+fn spinner_progress(message: &str, current: usize, total: usize) -> Spinner {
+    Spinner::new(message.to_string(), current, total)
 }

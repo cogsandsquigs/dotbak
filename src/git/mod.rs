@@ -65,38 +65,6 @@ impl Repository {
         Ok(repo)
     }
 
-    /// Set the remote for the repository. It will return an error if the repository is not
-    /// initialized. The remote is named REMOTE_NAME.
-    ///
-    /// `url` is the URL to the remote repository.
-    pub fn set_remote<S>(&mut self, url: S) -> Result<Output>
-    where
-        S: ToString,
-    {
-        let url = url.to_string();
-
-        // Run the remote command.
-        let result =
-            run_arbitrary_git_command(&self.path, &["remote", "set-url", REMOTE_NAME, &url]);
-
-        match result {
-            // If the command succeeded, return.
-            Ok(output) => Ok(output),
-
-            // If the remote could not be found, create it.
-            Err(DotbakError::Io(IoError::CommandRun { stderr, .. }))
-                if stderr == *"error: No such remote 'origin'\n" =>
-            {
-                // Run the remote command.
-                run_arbitrary_git_command(&self.path, &["remote", "add", REMOTE_NAME, &url])?;
-                run_arbitrary_git_command(&self.path, &["remote", "set-url", REMOTE_NAME, &url])
-            }
-
-            // If the command failed, return an error.
-            Err(e) => Err(e),
-        }
-    }
-
     /// Loads a pre-existing repository from a local location. It will return an error if the repository
     /// is not initialized or is not there.
     ///
@@ -172,6 +140,37 @@ impl Repository {
         run_arbitrary_git_command(&self.path, args)
     }
 
+    /// Set the remote for the repository. It will return an error if the repository is not
+    /// initialized. The remote is named REMOTE_NAME.
+    ///
+    /// `url` is the URL to the remote repository.
+    pub fn set_remote<S>(&mut self, url: S) -> Result<Output>
+    where
+        S: ToString,
+    {
+        let url = url.to_string();
+
+        // Run the remote command.
+        let result = self.arbitrary_command(&["remote", "set-url", REMOTE_NAME, &url]);
+
+        match result {
+            // If the command succeeded, return.
+            Ok(output) => Ok(output),
+
+            // If the remote could not be found, create it.
+            Err(DotbakError::Io(IoError::CommandRun { stderr, .. }))
+                if stderr == *"error: No such remote 'origin'\n" =>
+            {
+                // Run the remote command.
+                self.arbitrary_command(&["remote", "add", REMOTE_NAME, &url])?;
+                self.arbitrary_command(&["remote", "set-url", REMOTE_NAME, &url])
+            }
+
+            // If the command failed, return an error.
+            Err(e) => Err(e),
+        }
+    }
+
     /// Commits all changed files to the repository. It will return an error if the repository is not initialized.
     ///
     /// `message` is the commit message.
@@ -179,10 +178,10 @@ impl Repository {
     /// Returns the commit's OID -- this is the commit's hash.
     pub fn commit(&mut self, message: &str) -> Result<()> {
         // Run the add command.
-        run_arbitrary_git_command(&self.path, &["add", "."])?;
+        self.arbitrary_command(&["add", "."])?;
 
         // Run the commit command.
-        run_arbitrary_git_command(&self.path, &["commit", "-am", message])?;
+        self.arbitrary_command(&["commit", "-am", message])?;
 
         Ok(())
     }
@@ -250,10 +249,10 @@ where
         return Ok(output);
     }
 
-    // Make sure that the error is not something benign like "nothing to commit".
-
     let string_stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let string_stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    // Make sure that the error is not something benign like "nothing to commit".
 
     match string_stdout {
         // HACK: If it's an error, but the error is "nothing to commit", then return an empty output.

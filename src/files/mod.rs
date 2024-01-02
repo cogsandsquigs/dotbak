@@ -260,9 +260,10 @@ where
         })?;
 
         // Move the file.
-        fs::rename(&from_path, &to_path).map_err(|err| IoError::Create {
+        fs::rename(&from_path, &to_path).map_err(|err| IoError::Move {
             source: err,
-            path: to_path.parent().unwrap().to_path_buf(),
+            from: from_path.clone(),
+            to: to_path.clone(),
         })?;
     }
 

@@ -5,7 +5,7 @@ use assert_fs::{prelude::FileTouch, NamedTempFile, TempDir};
 
 /// Test if the default configuration can be loaded from a file that doesn't exist.
 #[test]
-#[should_panic(expected = "ConfigNotFound")]
+#[should_panic(expected = "NotFound")]
 fn test_load_config_file_absent() {
     // This does not create a file, but just gives a (temp) path to said file.
     let config_path = NamedTempFile::new("config.toml").unwrap();
@@ -39,7 +39,7 @@ fn test_load_config_file_exists() {
 
 // Test if we can save the default configuration to a file that doesn't exist.
 #[test]
-#[should_panic(expected = "ConfigNotFound")]
+#[should_panic(expected = "NotFound")]
 fn test_save_config_file_absent() {
     // This does not create a file, but just gives a (temp) path to said file.
     let config_path = NamedTempFile::new("config.toml").unwrap();
@@ -126,7 +126,7 @@ fn test_create_config_file_absent() {
 /// Tests the creation of a config file at a path that already exists.
 /// This should panic.
 #[test]
-#[should_panic(expected = "ConfigAlreadyExists")]
+#[should_panic(expected = "AlreadyExists")]
 fn test_create_config_file_exists() {
     // This does not create a file, but just gives a (temp) path to said file.
     let config_path = NamedTempFile::new("config.toml").unwrap();

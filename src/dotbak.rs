@@ -3,7 +3,7 @@ use crate::{
     errors::{config::ConfigError, DotbakError, Result},
     files::Files,
     git::Repository,
-    ui::Spinner,
+    spinners::Spinner,
 };
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
@@ -13,6 +13,17 @@ pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
 
 /// The path to the git repository folder, relative to `XDG_DATA_HOME`.
 pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
+
+/* The action messages for certain actions */
+const COMMIT_MSG: &str = "📦 Committing changes";
+const PUSH_MSG: &str = "📤 Pushing changes";
+const PULL_MSG: &str = "📥 Pulling changes";
+const SYNC_MSG: &str = "🔄 Syncing state";
+const UPDATE_CONF_MSG: &str = "💾 Updating configuration";
+const RM_FILES_MSG: &str = "🗑️ Removing files";
+const RESTORE_FILES_MSG: &str = "⏪ Restoring files";
+const RM_CONFG_MSG: &str = "🗑️ Removing configuration";
+const RM_REPO_MSG: &str = "🗑️ Removing repository";
 
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
@@ -69,22 +80,22 @@ impl Dotbak {
         self.sync_all_files()?;
 
         // Commit to the repository.
-        let spinner = spinner_progress("Commiting changes", 1, 4);
+        let spinner = spinner_progress(COMMIT_MSG, 1, 4);
         self.repo.commit("Sync files")?;
         spinner.close();
 
         // Pull from the repository.
-        let spinner = spinner_progress("Pulling changes", 2, 4);
+        let spinner = spinner_progress(PULL_MSG, 2, 4);
         self.repo.pull()?;
         spinner.close();
 
         // Push to the repository.
-        let spinner = spinner_progress("Pushing changes", 3, 4);
+        let spinner = spinner_progress(PUSH_MSG, 3, 4);
         self.repo.push()?;
         spinner.close();
 
         // Sync all files again.
-        let spinner = spinner_progress("Synching state", 4, 4);
+        let spinner = spinner_progress(SYNC_MSG, 4, 4);
         self.sync_all_files()?;
         spinner.close();
 
@@ -99,7 +110,7 @@ impl Dotbak {
         P: AsRef<Path>,
     {
         // Add the paths to the `include` list.
-        let spinner = spinner_progress("Updating configuration", 1, 3);
+        let spinner = spinner_progress(UPDATE_CONF_MSG, 1, 3);
         self.config
             .files
             .include
@@ -109,13 +120,13 @@ impl Dotbak {
         spinner.close();
 
         // Move the files/folders to the repository and symlink them to their original location.
-        let spinner = spinner_progress("Synching state", 2, 3);
+        let spinner = spinner_progress(SYNC_MSG, 2, 3);
         self.sync_files(files)?;
         spinner.close();
 
         // Commit to the repository.
         // TODO: Make this message configurable.
-        let spinner = spinner_progress("Commiting changes", 3, 3);
+        let spinner = spinner_progress(COMMIT_MSG, 3, 3);
         self.repo.commit(&format!(
             "Add files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
@@ -133,7 +144,7 @@ impl Dotbak {
         P: AsRef<Path>,
     {
         // Remove the paths from the `include` list.
-        let spinner = spinner_progress("Updating configuration", 1, 3);
+        let spinner = spinner_progress(UPDATE_CONF_MSG, 1, 3);
         self.config
             .files
             .include
@@ -144,13 +155,13 @@ impl Dotbak {
         spinner.close();
 
         // Remove the files/folders from the repository and restore them to their original location.
-        let spinner = spinner_progress("Removing files", 2, 3);
+        let spinner = spinner_progress(RM_FILES_MSG, 2, 3);
         self.dotfiles.remove_and_restore(files)?;
         spinner.close();
 
         // Commit to the repository.
         // TODO: Make this message configurable.
-        let spinner = spinner_progress("Commiting changes", 3, 3);
+        let spinner = spinner_progress(COMMIT_MSG, 3, 3);
         self.repo.commit(&format!(
             "Remove files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
@@ -163,11 +174,11 @@ impl Dotbak {
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
     pub fn push(&mut self) -> Result<()> {
-        let spinner = spinner_progress("Synching state", 1, 2);
+        let spinner = spinner_progress(SYNC_MSG, 1, 2);
         self.sync_all_files()?;
         spinner.close();
 
-        let spinner = spinner_progress("Pushing changes", 1, 2);
+        let spinner = spinner_progress(PUSH_MSG, 1, 2);
         self.repo.push()?;
         spinner.close();
 
@@ -177,11 +188,11 @@ impl Dotbak {
     /// Pull changes from the remote.
     /// TODO: Logging/tracing and such.
     pub fn pull(&mut self) -> Result<()> {
-        let spinner = spinner_progress("Pulling changes", 1, 2);
+        let spinner = spinner_progress(PULL_MSG, 1, 2);
         self.repo.pull()?;
         spinner.close();
 
-        let spinner = spinner_progress("Synching state", 2, 2);
+        let spinner = spinner_progress(SYNC_MSG, 2, 2);
         self.sync_all_files()?;
         spinner.close();
 
@@ -190,11 +201,11 @@ impl Dotbak {
 
     /// Run an arbitrary git command on the repository.
     pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<()> {
-        let spinner = spinner_progress(&format!("Running 'git {}'", args.join(" ")), 1, 2);
+        let spinner = spinner_progress(&format!("🏃 Running 'git {}'", args.join(" ")), 1, 2);
         self.repo.arbitrary_command(args)?;
         spinner.close();
 
-        let spinner = spinner_progress("Synching state", 2, 2);
+        let spinner = spinner_progress(SYNC_MSG, 2, 2);
         self.sync_all_files()?;
         spinner.close();
 
@@ -205,18 +216,18 @@ impl Dotbak {
     // that were managed by `dotbak` to their original location.
     pub fn deinit(self) -> Result<()> {
         // Restore all files that were managed by `dotbak` to their original location.
-        let spinner = spinner_progress("Restoring original files", 1, 3);
+        let spinner = spinner_progress(RESTORE_FILES_MSG, 1, 3);
         self.dotfiles
             .remove_and_restore(&self.config.files.include)?;
         spinner.close();
 
         // Remove the configuration file.
-        let spinner = spinner_progress("Removing configuration", 2, 3);
+        let spinner = spinner_progress(RM_CONFG_MSG, 2, 3);
         self.config.delete_config()?;
         spinner.close();
 
         // Remove the repository.
-        let spinner = spinner_progress("Removing repository", 3, 3);
+        let spinner = spinner_progress(RM_REPO_MSG, 3, 3);
         self.repo.delete()?;
         spinner.close();
 
@@ -251,7 +262,7 @@ impl Dotbak {
 
             // If the configuration file does not exist, create it.
             // TODO: log that the configuration file was created, not loaded.
-            Err(DotbakError::Config(ConfigError::ConfigNotFound { .. })) => {
+            Err(DotbakError::Config(ConfigError::NotFound { .. })) => {
                 Config::create_config(config_path)?
             }
 
@@ -325,7 +336,7 @@ impl Dotbak {
 
             // If the configuration file does not exist, create it.
             // TODO: log that the configuration file was created, not loaded.
-            Err(DotbakError::Config(ConfigError::ConfigNotFound { .. })) => {
+            Err(DotbakError::Config(ConfigError::NotFound { .. })) => {
                 Config::create_config(config_path)?
             }
 

@@ -50,7 +50,7 @@ impl Config {
         let mut config: Config;
 
         if !path.exists() {
-            return Err(ConfigError::ConfigNotFound {
+            return Err(ConfigError::NotFound {
                 path: path.to_path_buf(),
             }
             .into());
@@ -72,7 +72,7 @@ impl Config {
     /// Saves the config file to the given path. If the path doesn't exist, it will return an error.
     pub fn save_config(&self) -> Result<()> {
         if !self.path.exists() {
-            return Err(ConfigError::ConfigNotFound {
+            return Err(ConfigError::NotFound {
                 path: self.path.to_path_buf(),
             }
             .into());
@@ -95,7 +95,7 @@ impl Config {
         let path: &Path = path.as_ref();
 
         if path.exists() {
-            return Err(ConfigError::ConfigAlreadyExists {
+            return Err(ConfigError::AlreadyExists {
                 path: path.to_path_buf(),
             }
             .into());
@@ -130,7 +130,7 @@ impl Config {
     /// Deletes the config file at the given path. If the path doesn't exist, it will return an error.
     pub fn delete_config(self) -> Result<()> {
         if !self.path.exists() {
-            return Err(ConfigError::ConfigNotFound { path: self.path }.into());
+            return Err(ConfigError::NotFound { path: self.path }.into());
         }
 
         fs::remove_file(&self.path).map_err(|err| IoError::Write {

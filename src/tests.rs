@@ -76,7 +76,7 @@ fn test_load_dotbak_no_dir() {
     assert!(result.is_err());
     assert!(matches!(
         result.err().unwrap(),
-        DotbakError::Config(ConfigError::ConfigNotFound { .. })
+        DotbakError::Config(ConfigError::NotFound { .. })
     ));
 }
 

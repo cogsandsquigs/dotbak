@@ -176,14 +176,13 @@ impl Repository {
     /// `message` is the commit message.
     ///
     /// Returns the commit's OID -- this is the commit's hash.
-    pub fn commit(&mut self, message: &str) -> Result<()> {
-        // Run the add command.
-        self.arbitrary_command(&["add", "."])?;
-
-        // Run the commit command.
-        self.arbitrary_command(&["commit", "-am", message])?;
-
-        Ok(())
+    pub fn commit(&mut self, message: &str) -> Result<[Output; 2]> {
+        Ok([
+            // Run the add command.
+            self.arbitrary_command(&["add", "."])?,
+            // Run the commit command.
+            self.arbitrary_command(&["commit", "-am", message])?,
+        ])
     }
 
     /// Pushes all commits to the remote repository. It will return an error if the repository is not

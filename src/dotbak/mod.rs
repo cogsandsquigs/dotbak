@@ -1,21 +1,28 @@
-mod test_util;
+mod spinners;
 mod tests;
 
+use self::spinners::Spinner;
 use crate::{
     config::Config,
     errors::{config::ConfigError, DotbakError, Result},
     files::Files,
     git::Repository,
-    spinners::Spinner,
 };
 use itertools::Itertools;
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+    process::Output,
+};
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
 
 /// The path to the git repository folder, relative to `XDG_DATA_HOME`.
 pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
+
+/// The padding used before sub-messages
+const PAD: &str = "   ";
 
 /* The action messages for certain actions */
 const COMMIT_MSG: &str = "📦 Committing changes";
@@ -88,18 +95,21 @@ impl Dotbak {
 
         // Commit to the repository.
         commit_spinner.start();
-        self.repo.commit("Sync files")?;
+        let outputs = self.repo.commit("Sync files")?;
         commit_spinner.close();
+        self.print_outputs(outputs);
 
         // Pull from the repository.
         pull_spinner.start();
-        self.repo.pull()?;
+        let output = self.repo.pull()?;
         pull_spinner.close();
+        self.print_output(output);
 
         // Push to the repository.
         push_spinner.start();
-        self.repo.push()?;
+        let output = self.repo.push()?;
         push_spinner.close();
+        self.print_output(output);
 
         // Sync all files again.
         sync_spinner.start();
@@ -137,11 +147,12 @@ impl Dotbak {
         // Commit to the repository.
         // TODO: Make this message configurable.
         commit_spinner.start();
-        self.repo.commit(&format!(
+        let outputs = self.repo.commit(&format!(
             "Add files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
         commit_spinner.close();
+        self.print_outputs(outputs);
 
         Ok(())
     }
@@ -175,11 +186,12 @@ impl Dotbak {
         // Commit to the repository.
         // TODO: Make this message configurable.
         commit_spinner.start();
-        self.repo.commit(&format!(
+        let outputs = self.repo.commit(&format!(
             "Remove files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
         commit_spinner.close();
+        self.print_outputs(outputs);
 
         Ok(())
     }
@@ -194,8 +206,9 @@ impl Dotbak {
         sync_spinner.close();
 
         push_spinner.start();
-        self.repo.push()?;
+        let output = self.repo.push()?;
         push_spinner.close();
+        self.print_output(output);
 
         Ok(())
     }
@@ -206,8 +219,9 @@ impl Dotbak {
         let [mut pull_spinner, mut sync_spinner] = get_spinners([PULL_MSG, SYNC_MSG]);
 
         pull_spinner.start();
-        self.repo.pull()?;
+        let output = self.repo.pull()?;
         pull_spinner.close();
+        self.print_output(output);
 
         sync_spinner.start();
         self.sync_all_files()?;
@@ -222,8 +236,9 @@ impl Dotbak {
             get_spinners(["🏃 Running arbitrary git command", SYNC_MSG]);
 
         arbitrary_command_spinner.start();
-        self.repo.arbitrary_command(args)?;
+        let output = self.repo.arbitrary_command(args)?;
         arbitrary_command_spinner.close();
+        self.print_output(output);
 
         sync_spinner.start();
         self.sync_all_files()?;
@@ -388,6 +403,45 @@ impl Dotbak {
 
         Ok(())
     }
+
+    fn print_output(&self, output: Output) {
+        if !self.verbose {
+            return;
+        }
+
+        let stdout_untrimmed = String::from_utf8_lossy(&output.stdout);
+        let stderr_untrimmed = String::from_utf8_lossy(&output.stderr);
+
+        let stdout = stdout_untrimmed.trim();
+        let stderr = stderr_untrimmed.trim();
+
+        if !stdout.is_empty() {
+            println!(
+                "{}",
+                console::style(&pad_lines_from_start(stdout, PAD.to_string() + "> ")).dim()
+            );
+        }
+
+        if !stderr.is_empty() {
+            println!(" ");
+            println!(
+                "{}",
+                console::style(&pad_lines_from_start(stderr, PAD.to_string() + "> "))
+                    .red()
+                    .dim()
+            );
+        }
+    }
+
+    fn print_outputs<const N: usize>(&self, outputs: [Output; N]) {
+        if !self.verbose {
+            return;
+        }
+
+        for output in outputs {
+            self.print_output(output);
+        }
+    }
 }
 
 /// Get the directories that `dotbak` uses. In order, it returns the `<home>`, `<config>`, and `<repo>` dirs.
@@ -415,6 +469,7 @@ fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
     for (i, message) in messages.iter().enumerate() {
         spinners.push(Spinner::new(
             message.to_string(),
+            PAD,
             max_chars - message.len(),
             i + 1,
             N,
@@ -424,4 +479,14 @@ fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
     spinners
         .try_into()
         .expect("The number of spinners should be equal to the number of messages!")
+}
+
+// Pad all lines in a string from the start with a given string.
+fn pad_lines_from_start<S>(input: &str, pad: S) -> String
+where
+    S: Display,
+{
+    input.lines().fold(String::new(), |acc, line| {
+        acc + &format!("{}{}\n", pad, line)
+    })
 }

@@ -4,7 +4,7 @@ mod dotbak;
 mod errors;
 mod files;
 mod git;
-mod spinners;
+mod test_util;
 
 use clap::Parser;
 use cli::Cli;

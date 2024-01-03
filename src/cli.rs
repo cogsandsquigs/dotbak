@@ -11,7 +11,7 @@ pub struct Cli {
     #[clap(subcommand)]
     pub action: Action,
 
-    /// [ALPHA] Whether to be verbose with logging or not. Currently does nothing.
+    /// Whether to be verbose with logging or not.
     /// Ex: printing the output of git commands.
     #[clap(short, long)]
     pub verbose: bool,

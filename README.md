@@ -60,7 +60,7 @@ Note that this `dotbak` configuration can also work with plain folders, such as 
 -   [x] Update UI to be more user friendly.
     -   [x] Adjust spacing after "steps" so that the spinner/emoji is always on the same column.
 -   [x] Display stdout/stderr of commands run by `dotbak` in the terminal.
-    -   [ ] Fix extra newlines on output.
+    -   [x] Fix extra newlines on output.
 -   [ ] Refactor code to be more modular.
 -   [ ] Run `dotbak sync` in the background as a daemon (on login/every x minutes).
 -   [ ] Create binary releases via CI (CircleCI) for Linux and macOS.

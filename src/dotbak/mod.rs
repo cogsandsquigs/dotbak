@@ -24,6 +24,9 @@ pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 /// The padding used before sub-messages
 const PAD: &str = "   ";
 
+/// The padding used before logs (normally hidden). Normally PAD + "> "
+const LOG_PAD: &str = "   > ";
+
 /* The action messages for certain actions */
 const COMMIT_MSG: &str = "📦 Committing changes";
 const PUSH_MSG: &str = "📤 Pushing changes";
@@ -40,7 +43,7 @@ pub struct Dotbak {
     /// The configuration for `dotbak`.
     pub(crate) config: Config,
 
-    /// Whether we are verbose or not with logging. Currently does nothing.
+    /// Whether we are verbose or not with logging.
     pub(crate) verbose: bool,
 
     /// The repository for `dotbak`.
@@ -97,24 +100,33 @@ impl Dotbak {
         commit_spinner.start();
         let outputs = self.repo.commit("Sync files")?;
         commit_spinner.close();
-        self.print_outputs(outputs);
+        self.log_outputs(outputs);
 
         // Pull from the repository.
         pull_spinner.start();
         let output = self.repo.pull()?;
         pull_spinner.close();
-        self.print_output(output);
+        self.log_output(output);
 
         // Push to the repository.
         push_spinner.start();
         let output = self.repo.push()?;
         push_spinner.close();
-        self.print_output(output);
+        self.log_output(output);
 
         // Sync all files again.
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
+        self.log(format!(
+            "Synced files: {}",
+            self.config
+                .files
+                .include
+                .iter()
+                .map(|f| f.display())
+                .join(", ")
+        ));
 
         Ok(())
     }
@@ -138,11 +150,19 @@ impl Dotbak {
 
         self.config.save_config()?;
         update_conf_spinner.close();
+        self.log(format!(
+            "Added files: {}",
+            files.iter().map(|p| p.as_ref().display()).join(", ")
+        ));
 
         // Move the files/folders to the repository and symlink them to their original location.
         sync_spinner.start();
         self.sync_files(files)?;
         sync_spinner.close();
+        self.log(format!(
+            "Synced files: {}",
+            files.iter().map(|p| p.as_ref().display()).join(", ")
+        ));
 
         // Commit to the repository.
         // TODO: Make this message configurable.
@@ -152,7 +172,7 @@ impl Dotbak {
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
         commit_spinner.close();
-        self.print_outputs(outputs);
+        self.log_outputs(outputs);
 
         Ok(())
     }
@@ -177,11 +197,19 @@ impl Dotbak {
         // Save the configuration file.
         self.config.save_config()?;
         update_conf_spinner.close();
+        self.log(format!(
+            "Removed files: {}",
+            files.iter().map(|p| p.as_ref().display()).join(", ")
+        ));
 
         // Remove the files/folders from the repository and restore them to their original location.
         rm_files_spinner.start();
         self.dotfiles.remove_and_restore(files)?;
         rm_files_spinner.close();
+        self.log(format!(
+            "Restored files: {}",
+            files.iter().map(|p| p.as_ref().display()).join(", ")
+        ));
 
         // Commit to the repository.
         // TODO: Make this message configurable.
@@ -191,7 +219,7 @@ impl Dotbak {
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
         commit_spinner.close();
-        self.print_outputs(outputs);
+        self.log_outputs(outputs);
 
         Ok(())
     }
@@ -204,11 +232,20 @@ impl Dotbak {
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
+        self.log(format!(
+            "Synced files: {}",
+            self.config
+                .files
+                .include
+                .iter()
+                .map(|f| f.display())
+                .join(", ")
+        ));
 
         push_spinner.start();
         let output = self.repo.push()?;
         push_spinner.close();
-        self.print_output(output);
+        self.log_output(output);
 
         Ok(())
     }
@@ -221,11 +258,20 @@ impl Dotbak {
         pull_spinner.start();
         let output = self.repo.pull()?;
         pull_spinner.close();
-        self.print_output(output);
+        self.log_output(output);
 
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
+        self.log(format!(
+            "Synced files: {}",
+            self.config
+                .files
+                .include
+                .iter()
+                .map(|f| f.display())
+                .join(", ")
+        ));
 
         Ok(())
     }
@@ -238,11 +284,20 @@ impl Dotbak {
         arbitrary_command_spinner.start();
         let output = self.repo.arbitrary_command(args)?;
         arbitrary_command_spinner.close();
-        self.print_output(output);
+        self.log_output(output);
 
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
+        self.log(format!(
+            "Synced files: {}",
+            self.config
+                .files
+                .include
+                .iter()
+                .map(|f| f.display())
+                .join(", ")
+        ));
 
         Ok(())
     }
@@ -258,6 +313,15 @@ impl Dotbak {
         self.dotfiles
             .remove_and_restore(&self.config.files.include)?;
         restore_files_spinner.close();
+        self.log(format!(
+            "Restored files: {}",
+            self.config
+                .files
+                .include
+                .iter()
+                .map(|f| f.display())
+                .join(", ")
+        ));
 
         // Remove the configuration file.
         rm_config_spinner.start();
@@ -404,7 +468,22 @@ impl Dotbak {
         Ok(())
     }
 
-    fn print_output(&self, output: Output) {
+    /// Log an output.
+    fn log<S>(&self, message: S)
+    where
+        S: Display,
+    {
+        if !self.verbose {
+            return;
+        }
+
+        println!(
+            "{}",
+            console::style(pad_lines_from_start(message, LOG_PAD)).dim()
+        );
+    }
+
+    fn log_output(&self, output: Output) {
         if !self.verbose {
             return;
         }
@@ -418,28 +497,31 @@ impl Dotbak {
         if !stdout.is_empty() {
             println!(
                 "{}",
-                console::style(&pad_lines_from_start(stdout, PAD.to_string() + "> ")).dim()
+                console::style(&pad_lines_from_start(stdout, LOG_PAD)).dim()
             );
         }
 
+        if !stdout.is_empty() && !stderr.is_empty() {
+            println!();
+        }
+
         if !stderr.is_empty() {
-            println!(" ");
             println!(
                 "{}",
-                console::style(&pad_lines_from_start(stderr, PAD.to_string() + "> "))
+                console::style(&pad_lines_from_start(stderr, LOG_PAD))
                     .red()
                     .dim()
             );
         }
     }
 
-    fn print_outputs<const N: usize>(&self, outputs: [Output; N]) {
+    fn log_outputs<const N: usize>(&self, outputs: [Output; N]) {
         if !self.verbose {
             return;
         }
 
         for output in outputs {
-            self.print_output(output);
+            self.log_output(output);
         }
     }
 }
@@ -482,11 +564,14 @@ fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
 }
 
 // Pad all lines in a string from the start with a given string.
-fn pad_lines_from_start<S>(input: &str, pad: S) -> String
+fn pad_lines_from_start<S1, S2>(input: S1, pad: S2) -> String
 where
-    S: Display,
+    S1: ToString,
+    S2: Display,
 {
-    input.lines().fold(String::new(), |acc, line| {
-        acc + &format!("{}{}\n", pad, line)
-    })
+    input
+        .to_string()
+        .lines()
+        .map(|line| format!("{}{}", pad, line))
+        .join("\n")
 }

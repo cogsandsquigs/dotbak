@@ -1,3 +1,6 @@
+mod test_util;
+mod tests;
+
 use crate::{
     config::Config,
     errors::{config::ConfigError, DotbakError, Result},
@@ -77,27 +80,31 @@ impl Dotbak {
 
     /// Sync the state. I.e., load all the files that are supposed to be loaded through `files.include`.
     pub fn sync(&mut self) -> Result<()> {
+        // Make sure everything's up to date.
         self.sync_all_files()?;
+
+        let [mut commit_spinner, mut pull_spinner, mut push_spinner, mut sync_spinner] =
+            get_spinners([COMMIT_MSG, PULL_MSG, PUSH_MSG, SYNC_MSG]);
 
         // Commit to the repository.
-        let spinner = spinner_progress(COMMIT_MSG, 1, 4);
+        commit_spinner.start();
         self.repo.commit("Sync files")?;
-        spinner.close();
+        commit_spinner.close();
 
         // Pull from the repository.
-        let spinner = spinner_progress(PULL_MSG, 2, 4);
+        pull_spinner.start();
         self.repo.pull()?;
-        spinner.close();
+        pull_spinner.close();
 
         // Push to the repository.
-        let spinner = spinner_progress(PUSH_MSG, 3, 4);
+        push_spinner.start();
         self.repo.push()?;
-        spinner.close();
+        push_spinner.close();
 
         // Sync all files again.
-        let spinner = spinner_progress(SYNC_MSG, 4, 4);
+        sync_spinner.start();
         self.sync_all_files()?;
-        spinner.close();
+        sync_spinner.close();
 
         Ok(())
     }
@@ -109,29 +116,32 @@ impl Dotbak {
     where
         P: AsRef<Path>,
     {
+        let [mut update_conf_spinner, mut sync_spinner, mut commit_spinner] =
+            get_spinners([UPDATE_CONF_MSG, SYNC_MSG, COMMIT_MSG]);
+
         // Add the paths to the `include` list.
-        let spinner = spinner_progress(UPDATE_CONF_MSG, 1, 3);
+        update_conf_spinner.start();
         self.config
             .files
             .include
             .extend(files.iter().map(|p| p.as_ref().to_path_buf()));
 
         self.config.save_config()?;
-        spinner.close();
+        update_conf_spinner.close();
 
         // Move the files/folders to the repository and symlink them to their original location.
-        let spinner = spinner_progress(SYNC_MSG, 2, 3);
+        sync_spinner.start();
         self.sync_files(files)?;
-        spinner.close();
+        sync_spinner.close();
 
         // Commit to the repository.
         // TODO: Make this message configurable.
-        let spinner = spinner_progress(COMMIT_MSG, 3, 3);
+        commit_spinner.start();
         self.repo.commit(&format!(
             "Add files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
-        spinner.close();
+        commit_spinner.close();
 
         Ok(())
     }
@@ -143,8 +153,11 @@ impl Dotbak {
     where
         P: AsRef<Path>,
     {
+        let [mut update_conf_spinner, mut rm_files_spinner, mut commit_spinner] =
+            get_spinners([UPDATE_CONF_MSG, RM_FILES_MSG, COMMIT_MSG]);
+
         // Remove the paths from the `include` list.
-        let spinner = spinner_progress(UPDATE_CONF_MSG, 1, 3);
+        update_conf_spinner.start();
         self.config
             .files
             .include
@@ -152,21 +165,21 @@ impl Dotbak {
 
         // Save the configuration file.
         self.config.save_config()?;
-        spinner.close();
+        update_conf_spinner.close();
 
         // Remove the files/folders from the repository and restore them to their original location.
-        let spinner = spinner_progress(RM_FILES_MSG, 2, 3);
+        rm_files_spinner.start();
         self.dotfiles.remove_and_restore(files)?;
-        spinner.close();
+        rm_files_spinner.close();
 
         // Commit to the repository.
         // TODO: Make this message configurable.
-        let spinner = spinner_progress(COMMIT_MSG, 3, 3);
+        commit_spinner.start();
         self.repo.commit(&format!(
             "Remove files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
-        spinner.close();
+        commit_spinner.close();
 
         Ok(())
     }
@@ -174,13 +187,15 @@ impl Dotbak {
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
     pub fn push(&mut self) -> Result<()> {
-        let spinner = spinner_progress(SYNC_MSG, 1, 2);
-        self.sync_all_files()?;
-        spinner.close();
+        let [mut sync_spinner, mut push_spinner] = get_spinners([SYNC_MSG, PUSH_MSG]);
 
-        let spinner = spinner_progress(PUSH_MSG, 1, 2);
+        sync_spinner.start();
+        self.sync_all_files()?;
+        sync_spinner.close();
+
+        push_spinner.start();
         self.repo.push()?;
-        spinner.close();
+        push_spinner.close();
 
         Ok(())
     }
@@ -188,26 +203,31 @@ impl Dotbak {
     /// Pull changes from the remote.
     /// TODO: Logging/tracing and such.
     pub fn pull(&mut self) -> Result<()> {
-        let spinner = spinner_progress(PULL_MSG, 1, 2);
-        self.repo.pull()?;
-        spinner.close();
+        let [mut pull_spinner, mut sync_spinner] = get_spinners([PULL_MSG, SYNC_MSG]);
 
-        let spinner = spinner_progress(SYNC_MSG, 2, 2);
+        pull_spinner.start();
+        self.repo.pull()?;
+        pull_spinner.close();
+
+        sync_spinner.start();
         self.sync_all_files()?;
-        spinner.close();
+        sync_spinner.close();
 
         Ok(())
     }
 
     /// Run an arbitrary git command on the repository.
     pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<()> {
-        let spinner = spinner_progress(&format!("🏃 Running 'git {}'", args.join(" ")), 1, 2);
-        self.repo.arbitrary_command(args)?;
-        spinner.close();
+        let [mut arbitrary_command_spinner, mut sync_spinner] =
+            get_spinners(["🏃 Running arbitrary git command", SYNC_MSG]);
 
-        let spinner = spinner_progress(SYNC_MSG, 2, 2);
+        arbitrary_command_spinner.start();
+        self.repo.arbitrary_command(args)?;
+        arbitrary_command_spinner.close();
+
+        sync_spinner.start();
         self.sync_all_files()?;
-        spinner.close();
+        sync_spinner.close();
 
         Ok(())
     }
@@ -215,21 +235,24 @@ impl Dotbak {
     // Deinitializes `dotbak`, removing the configuration file and the repository. This also restores all files
     // that were managed by `dotbak` to their original location.
     pub fn deinit(self) -> Result<()> {
+        let [mut restore_files_spinner, mut rm_config_spinner, mut rm_repo_spinner] =
+            get_spinners([RESTORE_FILES_MSG, RM_CONFG_MSG, RM_REPO_MSG]);
+
         // Restore all files that were managed by `dotbak` to their original location.
-        let spinner = spinner_progress(RESTORE_FILES_MSG, 1, 3);
+        restore_files_spinner.start();
         self.dotfiles
             .remove_and_restore(&self.config.files.include)?;
-        spinner.close();
+        restore_files_spinner.close();
 
         // Remove the configuration file.
-        let spinner = spinner_progress(RM_CONFG_MSG, 2, 3);
+        rm_config_spinner.start();
         self.config.delete_config()?;
-        spinner.close();
+        rm_config_spinner.close();
 
         // Remove the repository.
-        let spinner = spinner_progress(RM_REPO_MSG, 3, 3);
+        rm_repo_spinner.start();
         self.repo.delete()?;
-        spinner.close();
+        rm_repo_spinner.close();
 
         Ok(())
     }
@@ -239,12 +262,7 @@ impl Dotbak {
 impl Dotbak {
     /// Initialize a new instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`. The user's home directory is assumed to be `<home>`.
-    pub(crate) fn init_into_dirs<P1, P2, P3>(
-        home: P1,
-        config: P2,
-        repo: P3,
-        verbose: bool,
-    ) -> Result<Self>
+    fn init_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, verbose: bool) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
@@ -283,12 +301,7 @@ impl Dotbak {
 
     /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
     /// repository from `<dotbak>/dotfiles`.
-    pub(crate) fn load_into_dirs<P1, P2, P3>(
-        home: P1,
-        config: P2,
-        repo: P3,
-        verbose: bool,
-    ) -> Result<Self>
+    fn load_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, verbose: bool) -> Result<Self>
     where
         P1: AsRef<Path>,
         P2: AsRef<Path>,
@@ -312,7 +325,7 @@ impl Dotbak {
 
     /// Clone an instance of `dotbak`, cloning the repository from the given URL to `<dotbak>/dotfiles`.
     /// The user's home directory is assumed to be `<home>`.
-    pub(crate) fn clone_into_dirs<P1, P2, P3>(
+    fn clone_into_dirs<P1, P2, P3>(
         home: P1,
         config: P2,
         repo: P3,
@@ -356,14 +369,14 @@ impl Dotbak {
     }
 
     /// Synchronize all files that are supposed to be synchronized.
-    pub(crate) fn sync_all_files(&mut self) -> Result<()> {
+    fn sync_all_files(&mut self) -> Result<()> {
         let files = self.config.files.include.clone(); // TODO: Get rid of this clone!
 
         self.sync_files(&files)
     }
 
     /// Synchronize a select set of files.
-    pub(crate) fn sync_files<P>(&mut self, files: &[P]) -> Result<()>
+    fn sync_files<P>(&mut self, files: &[P]) -> Result<()>
     where
         P: AsRef<Path>,
     {
@@ -389,7 +402,26 @@ fn get_dotbak_dirs() -> (PathBuf, PathBuf, PathBuf) {
     )
 }
 
-/// Print out a message with a [x/n] counter before it
-fn spinner_progress(message: &str, current: usize, total: usize) -> Spinner {
-    Spinner::new(message.to_string(), current, total)
+/// Gets the spinners for a set of messages.
+fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
+    let mut spinners = vec![];
+
+    let max_chars = messages
+        .iter()
+        .map(|m| m.len())
+        .max()
+        .expect("This should not fail!");
+
+    for (i, message) in messages.iter().enumerate() {
+        spinners.push(Spinner::new(
+            message.to_string(),
+            max_chars - message.len(),
+            i + 1,
+            N,
+        ));
+    }
+
+    spinners
+        .try_into()
+        .expect("The number of spinners should be equal to the number of messages!")
 }

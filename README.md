@@ -58,8 +58,9 @@ Note that this `dotbak` configuration can also work with plain folders, such as 
 ## TODO:
 
 -   [x] Update UI to be more user friendly.
+    -   [ ] Adjust spacing after "steps" so that the spinner/emoji is always on the same column.
+-   [ ] Refactor code to be more modular.
 -   [ ] Display stdout/stderr of commands run by `dotbak` in the terminal.
-    -   [ ] **NEXT STEP:** _Stream_ stderr/out of arbitrary commands to the terminal when running.
 -   [ ] Run `dotbak sync` in the background as a daemon (on login/every x minutes).
 -   [ ] Create binary releases via CI (CircleCI) for Linux and macOS.
 -   [ ] Create AUR/Homebrew packages for `dotbak`.

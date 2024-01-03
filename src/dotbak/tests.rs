@@ -2,8 +2,8 @@
 
 use super::*;
 use crate::{
-    dotbak::Dotbak,
     errors::{config::ConfigError, DotbakError},
+    repo_exists,
 };
 use assert_fs::TempDir;
 use std::{fs, path::PathBuf};

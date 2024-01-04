@@ -1,7 +1,8 @@
+mod logger;
 mod spinners;
 mod tests;
 
-use self::spinners::Spinner;
+use self::{logger::Logger, spinners::Spinner};
 use crate::{
     config::Config,
     errors::{config::ConfigError, DotbakError, Result},
@@ -9,11 +10,7 @@ use crate::{
     git::Repository,
 };
 use itertools::Itertools;
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-    process::Output,
-};
+use std::path::{Path, PathBuf};
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
 pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
@@ -23,9 +20,6 @@ pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 
 /// The padding used before sub-messages
 const PAD: &str = "   ";
-
-/// The padding used before logs (normally hidden). Normally PAD + "> "
-const LOG_PAD: &str = "   > ";
 
 /* The action messages for certain actions */
 const COMMIT_MSG: &str = "📦 Committing changes";
@@ -41,16 +35,16 @@ const RM_REPO_MSG: &str = "🗑️ Removing repository";
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
     /// The configuration for `dotbak`.
-    pub(crate) config: Config,
-
-    /// Whether we are verbose or not with logging.
-    pub(crate) verbose: bool,
+    config: Config,
 
     /// The repository for `dotbak`.
-    pub(crate) repo: Repository,
+    repo: Repository,
 
     /// The dotfiles that are being managed by `dotbak`.
-    pub(crate) dotfiles: Files,
+    dotfiles: Files,
+
+    /// The logger for `dotbak`.
+    logger: Logger,
 }
 
 /// Public API for `Dotbak`.
@@ -100,25 +94,25 @@ impl Dotbak {
         commit_spinner.start();
         let outputs = self.repo.commit("Sync files")?;
         commit_spinner.close();
-        self.log_outputs(outputs);
+        self.logger.log_outputs(outputs);
 
         // Pull from the repository.
         pull_spinner.start();
         let output = self.repo.pull()?;
         pull_spinner.close();
-        self.log_output(output);
+        self.logger.log_output(output);
 
         // Push to the repository.
         push_spinner.start();
         let output = self.repo.push()?;
         push_spinner.close();
-        self.log_output(output);
+        self.logger.log_output(output);
 
         // Sync all files again.
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Synced files: {}",
             self.config
                 .files
@@ -150,7 +144,7 @@ impl Dotbak {
 
         self.config.save_config()?;
         update_conf_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Added files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ));
@@ -159,7 +153,7 @@ impl Dotbak {
         sync_spinner.start();
         self.sync_files(files)?;
         sync_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Synced files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ));
@@ -172,7 +166,7 @@ impl Dotbak {
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
         commit_spinner.close();
-        self.log_outputs(outputs);
+        self.logger.log_outputs(outputs);
 
         Ok(())
     }
@@ -197,7 +191,7 @@ impl Dotbak {
         // Save the configuration file.
         self.config.save_config()?;
         update_conf_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Removed files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ));
@@ -206,7 +200,7 @@ impl Dotbak {
         rm_files_spinner.start();
         self.dotfiles.remove_and_restore(files)?;
         rm_files_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Restored files: {}",
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ));
@@ -219,7 +213,7 @@ impl Dotbak {
             files.iter().map(|p| p.as_ref().display()).join(", ")
         ))?;
         commit_spinner.close();
-        self.log_outputs(outputs);
+        self.logger.log_outputs(outputs);
 
         Ok(())
     }
@@ -232,7 +226,7 @@ impl Dotbak {
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Synced files: {}",
             self.config
                 .files
@@ -245,7 +239,7 @@ impl Dotbak {
         push_spinner.start();
         let output = self.repo.push()?;
         push_spinner.close();
-        self.log_output(output);
+        self.logger.log_output(output);
 
         Ok(())
     }
@@ -258,12 +252,12 @@ impl Dotbak {
         pull_spinner.start();
         let output = self.repo.pull()?;
         pull_spinner.close();
-        self.log_output(output);
+        self.logger.log_output(output);
 
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Synced files: {}",
             self.config
                 .files
@@ -284,12 +278,12 @@ impl Dotbak {
         arbitrary_command_spinner.start();
         let output = self.repo.arbitrary_command(args)?;
         arbitrary_command_spinner.close();
-        self.log_output(output);
+        self.logger.log_output(output);
 
         sync_spinner.start();
         self.sync_all_files()?;
         sync_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Synced files: {}",
             self.config
                 .files
@@ -313,7 +307,7 @@ impl Dotbak {
         self.dotfiles
             .remove_and_restore(&self.config.files.include)?;
         restore_files_spinner.close();
-        self.log(format!(
+        self.logger.info(format!(
             "Restored files: {}",
             self.config
                 .files
@@ -374,31 +368,7 @@ impl Dotbak {
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
-            verbose,
-        })
-    }
-
-    /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
-    /// repository from `<dotbak>/dotfiles`.
-    fn load_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, verbose: bool) -> Result<Self>
-    where
-        P1: AsRef<Path>,
-        P2: AsRef<Path>,
-        P3: AsRef<Path>,
-    {
-        let config_path = config.as_ref().to_path_buf();
-        let repo_path = repo.as_ref().to_path_buf();
-        let home_path = home.as_ref().to_path_buf();
-
-        // Load the configuration file and the repository.
-        let config = Config::load_config(config_path)?;
-        let repo = Repository::load(&repo_path)?;
-
-        Ok(Dotbak {
-            dotfiles: Files::init(home_path, repo_path),
-            config,
-            repo,
-            verbose,
+            logger: Logger::new(verbose),
         })
     }
 
@@ -443,7 +413,37 @@ impl Dotbak {
             dotfiles: Files::init(home_path, repo_path),
             config,
             repo,
-            verbose,
+            logger: Logger::new(verbose),
+        })
+    }
+
+    /// Load an instance of `dotbak`, loading the configuration file from `<dotbak>/config.toml` and the
+    /// repository from `<dotbak>/dotfiles`.
+    fn load_into_dirs<P1, P2, P3>(home: P1, config: P2, repo: P3, verbose: bool) -> Result<Self>
+    where
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
+        P3: AsRef<Path>,
+    {
+        let config_path = config.as_ref().to_path_buf();
+        let repo_path = repo.as_ref().to_path_buf();
+        let home_path = home.as_ref().to_path_buf();
+
+        // Load the configuration file and the repository.
+        let config = Config::load_config(config_path)?;
+        let repo = Repository::load(&repo_path)?;
+
+        Ok(Dotbak {
+            dotfiles: Files::init(home_path, repo_path),
+            config,
+            repo,
+
+            // TODO: Make this output to log file when in daemon mode.
+            logger: Logger::new_with_streams(
+                verbose,
+                Box::new(std::io::stdout()),
+                Box::new(std::io::stderr()),
+            ),
         })
     }
 
@@ -466,63 +466,6 @@ impl Dotbak {
         self.dotfiles.symlink_back_home(files)?;
 
         Ok(())
-    }
-
-    /// Log an output.
-    fn log<S>(&self, message: S)
-    where
-        S: Display,
-    {
-        if !self.verbose {
-            return;
-        }
-
-        println!(
-            "{}",
-            console::style(pad_lines_from_start(message, LOG_PAD)).dim()
-        );
-    }
-
-    fn log_output(&self, output: Output) {
-        if !self.verbose {
-            return;
-        }
-
-        let stdout_untrimmed = String::from_utf8_lossy(&output.stdout);
-        let stderr_untrimmed = String::from_utf8_lossy(&output.stderr);
-
-        let stdout = stdout_untrimmed.trim();
-        let stderr = stderr_untrimmed.trim();
-
-        if !stdout.is_empty() {
-            println!(
-                "{}",
-                console::style(&pad_lines_from_start(stdout, LOG_PAD)).dim()
-            );
-        }
-
-        if !stdout.is_empty() && !stderr.is_empty() {
-            println!();
-        }
-
-        if !stderr.is_empty() {
-            println!(
-                "{}",
-                console::style(&pad_lines_from_start(stderr, LOG_PAD))
-                    .red()
-                    .dim()
-            );
-        }
-    }
-
-    fn log_outputs<const N: usize>(&self, outputs: [Output; N]) {
-        if !self.verbose {
-            return;
-        }
-
-        for output in outputs {
-            self.log_output(output);
-        }
     }
 }
 
@@ -561,17 +504,4 @@ fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
     spinners
         .try_into()
         .expect("The number of spinners should be equal to the number of messages!")
-}
-
-// Pad all lines in a string from the start with a given string.
-fn pad_lines_from_start<S1, S2>(input: S1, pad: S2) -> String
-where
-    S1: ToString,
-    S2: Display,
-{
-    input
-        .to_string()
-        .lines()
-        .map(|line| format!("{}{}", pad, line))
-        .join("\n")
 }

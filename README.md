@@ -30,7 +30,13 @@ Install with `cargo install dotbak`. This will install the `dotbak` binary to `$
 
 Dotfiles are symlinked and stored in `$HOME/.dotbak/dotfiles`. This directory is created automatically when `dotbak init` is run for the first time. `dotbak` manages a git reposiotry in this directory, and all dotfiles are stored in this repository.
 
+To add or remove dotfiles, use `dotbak add` and `dotbak remove`. These commands will add or remove files from the repository, and then symlink or restore the files to `$HOME`. When providing a path to your file, make sure that the path is relative to `$HOME`. For example, if you want to add `$HOME/.dotbak/config.toml`, you would run `dotbak add .dotbak/config.toml`.
+
+> TIP: `dotbak` will not remove files from `$HOME` if they are not managed by `dotbak`.
+
 When `dotbak sync` is run, `dotbak` will commit all changes to the repository, push the changes to the remote repository, and then pull any changes from the remote repository. Unless otherwise specified, all other commands do not push or pull changes from the remote repository (besides, yaknow, `push` and `pull`).
+
+> TIP: Run `dotbak sync` after adding or removing files to push or pull changes from the remote repository. If you don't want the changes, run `dotbak undo` to undo the changes. **This only affects changes not yet pushed to the remote repository**.
 
 ## Configuration
 
@@ -61,7 +67,8 @@ Note that this `dotbak` configuration can also work with plain folders, such as 
     -   [x] Adjust spacing after "steps" so that the spinner/emoji is always on the same column.
 -   [x] Display stdout/stderr of commands run by `dotbak` in the terminal.
     -   [x] Fix extra newlines on output.
--   [ ] Refactor code to be more modular.
+-   [x] Refactor code to be more modular.
+-   [ ] Make an `undo`/`rollback` command to undo recent changes made by `dotbak`.
 -   [ ] Run `dotbak sync` in the background as a daemon (on login/every x minutes).
 -   [ ] Create binary releases via CI (CircleCI) for Linux and macOS.
 -   [ ] Create AUR/Homebrew packages for `dotbak`.

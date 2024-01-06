@@ -26,6 +26,7 @@ const COMMIT_MSG: &str = "📦 Committing changes";
 const PUSH_MSG: &str = "📤 Pushing changes";
 const PULL_MSG: &str = "📥 Pulling changes";
 const SYNC_MSG: &str = "🔄 Syncing state";
+const UNDO_MSG: &str = "⏪ Undoing last commit";
 const UPDATE_CONF_MSG: &str = "💾 Updating configuration";
 const RM_FILES_MSG: &str = "🗑️ Removing files";
 const RESTORE_FILES_MSG: &str = "⏪ Restoring files";
@@ -135,27 +136,29 @@ impl Dotbak {
         let [mut update_conf_spinner, mut sync_spinner, mut commit_spinner] =
             get_spinners([UPDATE_CONF_MSG, SYNC_MSG, COMMIT_MSG]);
 
+        let files = preprocess_paths(files);
+
         // Add the paths to the `include` list.
         update_conf_spinner.start();
         self.config
             .files
             .include
-            .extend(files.iter().map(|p| p.as_ref().to_path_buf()));
+            .extend(files.iter().map(|p| p.to_path_buf()));
 
         self.config.save_config()?;
         update_conf_spinner.close();
         self.logger.info(format!(
             "Added files: {}",
-            files.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.display()).join(", ")
         ));
 
         // Move the files/folders to the repository and symlink them to their original location.
         sync_spinner.start();
-        self.sync_files(files)?;
+        self.sync_files(&files)?;
         sync_spinner.close();
         self.logger.info(format!(
             "Synced files: {}",
-            files.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.display()).join(", ")
         ));
 
         // Commit to the repository.
@@ -163,7 +166,7 @@ impl Dotbak {
         commit_spinner.start();
         let outputs = self.repo.commit(&format!(
             "Add files: {}",
-            files.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.display()).join(", ")
         ))?;
         commit_spinner.close();
         self.logger.log_outputs(outputs);
@@ -181,28 +184,30 @@ impl Dotbak {
         let [mut update_conf_spinner, mut rm_files_spinner, mut commit_spinner] =
             get_spinners([UPDATE_CONF_MSG, RM_FILES_MSG, COMMIT_MSG]);
 
+        let files = preprocess_paths(files);
+
         // Remove the paths from the `include` list.
         update_conf_spinner.start();
         self.config
             .files
             .include
-            .retain(|p| !files.iter().any(|p2| p == p2.as_ref()));
+            .retain(|p| !files.iter().any(|p2| p == p2));
 
         // Save the configuration file.
         self.config.save_config()?;
         update_conf_spinner.close();
         self.logger.info(format!(
             "Removed files: {}",
-            files.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.display()).join(", ")
         ));
 
         // Remove the files/folders from the repository and restore them to their original location.
         rm_files_spinner.start();
-        self.dotfiles.remove_and_restore(files)?;
+        self.dotfiles.remove_and_restore(&files)?;
         rm_files_spinner.close();
         self.logger.info(format!(
             "Restored files: {}",
-            files.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.display()).join(", ")
         ));
 
         // Commit to the repository.
@@ -210,10 +215,36 @@ impl Dotbak {
         commit_spinner.start();
         let outputs = self.repo.commit(&format!(
             "Remove files: {}",
-            files.iter().map(|p| p.as_ref().display()).join(", ")
+            files.iter().map(|p| p.display()).join(", ")
         ))?;
         commit_spinner.close();
         self.logger.log_outputs(outputs);
+
+        Ok(())
+    }
+
+    /// Undo the last *local* commit to the repository and restore the files/folders that were changed in that commit.
+    /// This will not affect the remote repository.
+    pub fn undo(&mut self) -> Result<()> {
+        let [mut undo_spinner, mut sync_spinner] = get_spinners([UNDO_MSG, SYNC_MSG]);
+
+        undo_spinner.start();
+        let output = self.repo.arbitrary_command(&["reset", "--soft", "HEAD~"])?;
+        undo_spinner.close();
+        self.logger.log_output(output);
+
+        sync_spinner.start();
+        self.sync_all_files()?;
+        sync_spinner.close();
+        self.logger.info(format!(
+            "Synced files: {}",
+            self.config
+                .files
+                .include
+                .iter()
+                .map(|f| f.display())
+                .join(", ")
+        ));
 
         Ok(())
     }
@@ -504,4 +535,17 @@ fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
     spinners
         .try_into()
         .expect("The number of spinners should be equal to the number of messages!")
+}
+
+// Convert to pathbufs and strip the $HOME prefix.
+fn preprocess_paths<P: AsRef<Path>>(paths: &[P]) -> Vec<PathBuf> {
+    paths
+        .iter()
+        .map(|p| {
+            p.as_ref()
+                .strip_prefix(dirs::home_dir().expect("You should have a home directory!"))
+                .unwrap_or(p.as_ref()) // Default to syncing the file: assumes all files w/o $HOME prefix are in $HOME. TODO: Is this a good idea?
+                .to_path_buf()
+        })
+        .collect()
 }

@@ -68,6 +68,7 @@ Note that this `dotbak` configuration can also work with plain folders, such as 
 -   [x] Display stdout/stderr of commands run by `dotbak` in the terminal.
     -   [x] Fix extra newlines on output.
 -   [x] Refactor code to be more modular.
+-   [ ] Automatically fix merge issues / ask user whether to fix merge issues.
 -   [ ] Make an `undo`/`rollback` command to undo recent changes made by `dotbak`.
 -   [ ] Run `dotbak sync` in the background as a daemon (on login/every x minutes).
 -   [ ] Create binary releases via CI (CircleCI) for Linux and macOS.

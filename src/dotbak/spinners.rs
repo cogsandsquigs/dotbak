@@ -1,8 +1,12 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
 
-const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const SPINNER_FRAME_DURATION: Duration = Duration::from_millis(100);
+const SPINNER_FRAMES: &[&str] = &[
+    "⠁", "⠂", "⠄", "⡀", "⡈", "⡐", "⡠", "⣀", "⣁", "⣂", "⣄", "⣌", "⣔", "⣤", "⣥", "⣦", "⣮", "⣶", "⣷",
+    "⣿", "⡿", "⠿", "⢟", "⠟", "⡛", "⠛", "⠫", "⢋", "⠋", "⠍", "⡉", "⠉", "⠑", "⠡", "⢁",
+];
+
+const SPINNER_FRAME_DURATION: Duration = Duration::from_millis(80);
 
 /// A wrapper around a progress bar.
 #[derive(Clone, Debug)]
@@ -81,12 +85,10 @@ fn template_with_ending(
     total: usize,
 ) -> String {
     format!(
-        "{}{} {{msg}} ...{} {}",
-        pre_msg_pad,
-        console::style(format!("[{}/{}]", current, total))
+        "{pre_msg_pad}{spinner_counter} {{msg}} {elipses} {ending}",
+        spinner_counter = console::style(format!("[{}/{}]", current, total))
             .bold()
             .dim(),
-        ".".repeat(post_msg_elipses),
-        ending,
+        elipses = console::style("·".repeat(post_msg_elipses + 3)).dim(),
     )
 }

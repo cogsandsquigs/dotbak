@@ -60,7 +60,7 @@ impl Spinner {
         self.spinner.set_style(
             ProgressStyle::default_spinner()
                 .template(&template_with_ending(
-                    "✅",
+                    &console::style("✔").green().to_string(),
                     &self.pre_msg_pad,
                     self.post_msg_elipses,
                     self.current,

@@ -85,7 +85,7 @@ impl Dotbak {
 
         // Commit to the repository.
         commit_spinner.start();
-        let outputs = self.repo.commit("Sync files")?;
+        let outputs = self.repo.commit("🔄 Sync files")?;
         commit_spinner.close();
         self.logger.log_outputs(outputs);
 
@@ -160,7 +160,7 @@ impl Dotbak {
         // TODO: Make this message configurable.
         commit_spinner.start();
         let outputs = self.repo.commit(&format!(
-            "Add files: {}",
+            "📦 Added files: {}",
             files.iter().map(|p| p.display()).join(", ")
         ))?;
         commit_spinner.close();
@@ -212,7 +212,7 @@ impl Dotbak {
         // TODO: Make this message configurable.
         commit_spinner.start();
         let outputs = self.repo.commit(&format!(
-            "Remove files: {}",
+            "❌ Removed files: {}",
             files.iter().map(|p| p.display()).join(", ")
         ))?;
         commit_spinner.close();

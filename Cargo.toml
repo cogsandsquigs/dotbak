@@ -30,6 +30,7 @@
 
 	# Misc.
 	itertools = "^0.12" # For iterators and other things
+	daemonize = "^0.5"  # For daemonizing the process
 
 	# TODO: add tracing (https://lib.rs/crates/tracing) for debugging/logging.
 	# TODO: look at blessed.rs (https://blessed.rs/crates) for terminal UI/others/etc.

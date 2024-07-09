@@ -1,4 +1,7 @@
-use crate::{dotbak::Dotbak, errors::Result};
+use crate::{
+    dotbak::{daemon::Daemon, Dotbak},
+    errors::Result,
+};
 use clap::Parser;
 use indicatif::HumanDuration;
 use std::path::PathBuf;
@@ -37,6 +40,8 @@ impl Cli {
             Action::Pull => "Pulling".to_string(),
             Action::Git { args } => format!("Running 'git {}'", args.join(" ")),
             Action::Deinit => "Deinitializing".to_string(),
+            Action::StartDaemon => "Starting daemon".to_string(),
+            Action::StopDaemon => "Stopping daemon".to_string(),
         }
     }
 
@@ -87,6 +92,16 @@ impl Cli {
             // Deinitialize `dotbak`.
             Action::Deinit => {
                 dotbak.deinit()?;
+            }
+
+            // Run the daemon, don't use `dotbak` result.
+            Action::StartDaemon => {
+                Daemon::new()?.run();
+            }
+
+            // Stop the daemon, don't use `dotbak` result.
+            Action::StopDaemon => {
+                Daemon::stop()?;
             }
         }
 
@@ -166,4 +181,10 @@ pub enum Action {
 
     /// Deinitializes an instance of `dotbak` in your home directory.
     Deinit,
+
+    /// Runs a daemon variant of `dotbak`.
+    StartDaemon,
+
+    /// Stops the daemon variant of `dotbak`.
+    StopDaemon,
 }

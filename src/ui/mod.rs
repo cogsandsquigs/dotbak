@@ -42,6 +42,11 @@ impl Interface {
         }
     }
 
+    /// Makes interface "silent" by removing output.
+    pub fn silence(&mut self) {
+        self.mp.set_draw_target(ProgressDrawTarget::hidden());
+    }
+
     /// Draw a message to the terminal.
     pub fn println<S>(&self, message: S)
     where

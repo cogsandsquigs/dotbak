@@ -1,3 +1,4 @@
+pub mod daemon;
 mod logger;
 mod tests;
 
@@ -10,6 +11,7 @@ use crate::{
     git::Repository,
 };
 use itertools::Itertools;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 
 /// The path to the configuration file, relative to `XDG_CONFIG_HOME`.
@@ -67,6 +69,18 @@ impl Dotbak {
         let mut dotbak = Self::load_into_dirs(home, config, repo, verbose)?;
 
         dotbak.sync_all_files()?;
+
+        Ok(dotbak)
+    }
+
+    /// Like `load`, but specifically for daemons: Will take two files as stdout and stderr, and
+    /// silence the interface.
+    pub fn load_for_daemon(stdout: File, stderr: File) -> Result<Self> {
+        let mut dotbak = Self::load(true)?;
+
+        dotbak.interface.silence();
+
+        dotbak.logger = Logger::new_with_streams(true, Box::new(stdout), Box::new(stderr));
 
         Ok(dotbak)
     }

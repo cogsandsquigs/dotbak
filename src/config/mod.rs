@@ -1,12 +1,11 @@
 pub mod files;
 mod tests;
 
+use self::files::FilesConfig;
 use crate::errors::{config::ConfigError, io::IoError, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::{fs, path::PathBuf};
-
-use self::files::FilesConfig;
 
 /// The configuration that Dotbak uses to run.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -22,6 +21,11 @@ pub struct Config {
     /// the repository again.
     pub repository_url: Option<String>,
 
+    /// The delay between syncs in seconds. This is the amount of time in SECONDS that Dotbak will wait in
+    /// between synchronizing files and folders when run as a daemon.
+    #[serde(default = "default_delay_time")]
+    pub delay_between_sync: u64,
+
     /// The configuration for the `Files` struct. This is a list of files and folders that will be
     /// managed by Dotbak.
     #[serde(default)]
@@ -34,6 +38,7 @@ impl Default for Config {
         Config {
             path: PathBuf::new(), // This is a temporary value that will be overwritten later.
             repository_url: None, // No default value.
+            delay_between_sync: 15 * 60, // 15 minutes
             files: FilesConfig::default(),
         }
     }
@@ -140,4 +145,9 @@ impl Config {
 
         Ok(())
     }
+}
+
+// The default delay time in seconds.
+fn default_delay_time() -> u64 {
+    15 * 60
 }

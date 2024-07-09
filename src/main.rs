@@ -5,7 +5,7 @@ mod errors;
 mod files;
 mod git;
 mod test_util;
-
+mod ui;
 use clap::Parser;
 use cli::Cli;
 use miette::Result;

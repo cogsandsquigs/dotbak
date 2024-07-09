@@ -1,8 +1,8 @@
 mod logger;
-mod spinners;
 mod tests;
 
-use self::{logger::Logger, spinners::Spinner};
+use self::logger::Logger;
+use crate::ui::{messages::*, Interface};
 use crate::{
     config::Config,
     errors::{config::ConfigError, DotbakError, Result},
@@ -18,21 +18,6 @@ pub(crate) const CONFIG_FILE_NAME: &str = "config.toml";
 /// The path to the git repository folder, relative to `XDG_DATA_HOME`.
 pub(crate) const REPO_FOLDER_NAME: &str = "dotfiles";
 
-/// The padding used before sub-messages
-const PAD: &str = "   ";
-
-/* The action messages for certain actions */
-const COMMIT_MSG: &str = "📦 Committing changes";
-const PUSH_MSG: &str = "📤 Pushing changes";
-const PULL_MSG: &str = "📥 Pulling changes";
-const SYNC_MSG: &str = "🔄 Syncing state";
-const UNDO_MSG: &str = "⏪ Undoing last commit";
-const UPDATE_CONF_MSG: &str = "💾 Updating configuration";
-const RM_FILES_MSG: &str = "🗑️ Removing files";
-const RESTORE_FILES_MSG: &str = "⏪ Restoring files";
-const RM_CONFG_MSG: &str = "🗑️ Removing configuration";
-const RM_REPO_MSG: &str = "🗑️ Removing repository";
-
 /// The main structure to manage `dotbak`'s actions and such.
 pub struct Dotbak {
     /// The configuration for `dotbak`.
@@ -46,6 +31,9 @@ pub struct Dotbak {
 
     /// The logger for `dotbak`.
     logger: Logger,
+
+    /// The interface for `dotbak`.
+    interface: Interface,
 }
 
 /// Public API for `Dotbak`.
@@ -88,8 +76,12 @@ impl Dotbak {
         // Make sure everything's up to date.
         self.sync_all_files()?;
 
-        let [mut commit_spinner, mut pull_spinner, mut push_spinner, mut sync_spinner] =
-            get_spinners([COMMIT_MSG, PULL_MSG, PUSH_MSG, SYNC_MSG]);
+        let (mut commit_spinner, mut pull_spinner, mut push_spinner, mut sync_spinner) = (
+            self.interface.spawn_spinner(COMMIT_MSG, 0),
+            self.interface.spawn_spinner(PULL_MSG, 0),
+            self.interface.spawn_spinner(PUSH_MSG, 0),
+            self.interface.spawn_spinner(SYNC_MSG, 0),
+        );
 
         // Commit to the repository.
         commit_spinner.start();
@@ -133,8 +125,11 @@ impl Dotbak {
     where
         P: AsRef<Path>,
     {
-        let [mut update_conf_spinner, mut sync_spinner, mut commit_spinner] =
-            get_spinners([UPDATE_CONF_MSG, SYNC_MSG, COMMIT_MSG]);
+        let (mut update_conf_spinner, mut sync_spinner, mut commit_spinner) = (
+            self.interface.spawn_spinner(UPDATE_CONF_MSG, 0),
+            self.interface.spawn_spinner(SYNC_MSG, 0),
+            self.interface.spawn_spinner(COMMIT_MSG, 0),
+        );
 
         let files = preprocess_paths(files);
 
@@ -181,8 +176,11 @@ impl Dotbak {
     where
         P: AsRef<Path>,
     {
-        let [mut update_conf_spinner, mut rm_files_spinner, mut commit_spinner] =
-            get_spinners([UPDATE_CONF_MSG, RM_FILES_MSG, COMMIT_MSG]);
+        let (mut update_conf_spinner, mut rm_files_spinner, mut commit_spinner) = (
+            self.interface.spawn_spinner(UPDATE_CONF_MSG, 0),
+            self.interface.spawn_spinner(RM_FILES_MSG, 0),
+            self.interface.spawn_spinner(COMMIT_MSG, 0),
+        );
 
         let files = preprocess_paths(files);
 
@@ -226,7 +224,10 @@ impl Dotbak {
     /// Undo the last *local* commit to the repository and restore the files/folders that were changed in that commit.
     /// This will not affect the remote repository.
     pub fn undo(&mut self) -> Result<()> {
-        let [mut undo_spinner, mut sync_spinner] = get_spinners([UNDO_MSG, SYNC_MSG]);
+        let (mut undo_spinner, mut sync_spinner) = (
+            self.interface.spawn_spinner(UNDO_MSG, 0),
+            self.interface.spawn_spinner(SYNC_MSG, 0),
+        );
 
         undo_spinner.start();
         let output = self.repo.arbitrary_command(&["reset", "--soft", "HEAD~"])?;
@@ -252,7 +253,10 @@ impl Dotbak {
     /// Push the repository to the remote.
     /// TODO: Logging/tracing and such.
     pub fn push(&mut self) -> Result<()> {
-        let [mut sync_spinner, mut push_spinner] = get_spinners([SYNC_MSG, PUSH_MSG]);
+        let (mut sync_spinner, mut push_spinner) = (
+            self.interface.spawn_spinner(SYNC_MSG, 0),
+            self.interface.spawn_spinner(PUSH_MSG, 0),
+        );
 
         sync_spinner.start();
         self.sync_all_files()?;
@@ -278,7 +282,10 @@ impl Dotbak {
     /// Pull changes from the remote.
     /// TODO: Logging/tracing and such.
     pub fn pull(&mut self) -> Result<()> {
-        let [mut pull_spinner, mut sync_spinner] = get_spinners([PULL_MSG, SYNC_MSG]);
+        let (mut pull_spinner, mut sync_spinner) = (
+            self.interface.spawn_spinner(PULL_MSG, 0),
+            self.interface.spawn_spinner(SYNC_MSG, 0),
+        );
 
         pull_spinner.start();
         let output = self.repo.pull()?;
@@ -303,8 +310,10 @@ impl Dotbak {
 
     /// Run an arbitrary git command on the repository.
     pub fn arbitrary_git_command(&mut self, args: &[&str]) -> Result<()> {
-        let [mut arbitrary_command_spinner, mut sync_spinner] =
-            get_spinners(["🏃 Running arbitrary git command", SYNC_MSG]);
+        let (mut arbitrary_command_spinner, mut sync_spinner) = (
+            self.interface.spawn_spinner(ARBITRARY_GIT_CMD_MSG, 0),
+            self.interface.spawn_spinner(SYNC_MSG, 0),
+        );
 
         arbitrary_command_spinner.start();
         let output = self.repo.arbitrary_command(args)?;
@@ -329,9 +338,12 @@ impl Dotbak {
 
     // Deinitializes `dotbak`, removing the configuration file and the repository. This also restores all files
     // that were managed by `dotbak` to their original location.
-    pub fn deinit(self) -> Result<()> {
-        let [mut restore_files_spinner, mut rm_config_spinner, mut rm_repo_spinner] =
-            get_spinners([RESTORE_FILES_MSG, RM_CONFG_MSG, RM_REPO_MSG]);
+    pub fn deinit(mut self) -> Result<()> {
+        let (mut restore_files_spinner, mut rm_config_spinner, mut rm_repo_spinner) = (
+            self.interface.spawn_spinner(RESTORE_FILES_MSG, 0),
+            self.interface.spawn_spinner(RM_CONFG_MSG, 0),
+            self.interface.spawn_spinner(RM_REPO_MSG, 0),
+        );
 
         // Restore all files that were managed by `dotbak` to their original location.
         restore_files_spinner.start();
@@ -400,6 +412,7 @@ impl Dotbak {
             config,
             repo,
             logger: Logger::new(verbose),
+            interface: Interface::new(MAX_MSG_LEN),
         })
     }
 
@@ -445,6 +458,7 @@ impl Dotbak {
             config,
             repo,
             logger: Logger::new(verbose),
+            interface: Interface::new(MAX_MSG_LEN),
         })
     }
 
@@ -475,6 +489,8 @@ impl Dotbak {
                 Box::new(std::io::stdout()),
                 Box::new(std::io::stderr()),
             ),
+
+            interface: Interface::new(MAX_MSG_LEN),
         })
     }
 
@@ -510,31 +526,6 @@ fn get_dotbak_dirs() -> (PathBuf, PathBuf, PathBuf) {
         dotbak_dir.join(CONFIG_FILE_NAME),
         dotbak_dir.join(REPO_FOLDER_NAME),
     )
-}
-
-/// Gets the spinners for a set of messages.
-fn get_spinners<const N: usize>(messages: [&str; N]) -> [Spinner; N] {
-    let mut spinners = vec![];
-
-    let max_chars = messages
-        .iter()
-        .map(|m| m.len())
-        .max()
-        .expect("This should not fail!");
-
-    for (i, message) in messages.iter().enumerate() {
-        spinners.push(Spinner::new(
-            message.to_string(),
-            PAD,
-            max_chars - message.len(),
-            i + 1,
-            N,
-        ));
-    }
-
-    spinners
-        .try_into()
-        .expect("The number of spinners should be equal to the number of messages!")
 }
 
 // Convert to pathbufs and strip the $HOME prefix.

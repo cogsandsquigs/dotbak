@@ -51,6 +51,8 @@ impl Daemon<'_> {
 
         // Run forever, until the user stops the daemon OR it panics OR the computer shuts down.
         loop {
+            self.dotbak.logger.info("Running sync command...");
+
             // Run the sync command
             self.dotbak
                 .sync()
